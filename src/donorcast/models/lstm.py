@@ -22,7 +22,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
+from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
 from donorcast.calendar import build_calendar_dataframe, load_facility_state_mapping
@@ -230,7 +230,6 @@ def prepare_lstm_data(
     grp_to_idx = {g: i for i, g in enumerate(groups)}
 
     all_dates = sorted(long_df["date"].unique())
-    date_to_idx = {d: i for i, d in enumerate(all_dates)}
 
     # Fit series scaler
     scaler = SeriesScaler()
@@ -374,9 +373,7 @@ def train_lstm_model(
     best_epoch = 0
     best_state_dict = None
 
-    print(
-        f"Training LSTM model (CPU only, batch_size={batch_size}, hidden_size={hidden_size})..."
-    )
+    print(f"Training LSTM model (CPU only, batch_size={batch_size}, hidden_size={hidden_size})...")
 
     for epoch in range(1, max_epochs + 1):
         model.train()
@@ -431,9 +428,7 @@ def train_lstm_model(
     if best_state_dict is not None:
         model.load_state_dict(best_state_dict)
 
-    print(
-        f"LSTM training finished. Best epoch: {best_epoch} with ES MSE = {best_es_loss:.5f}"
-    )
+    print(f"LSTM training finished. Best epoch: {best_epoch} with ES MSE = {best_es_loss:.5f}")
     return model, best_epoch, best_es_loss
 
 
@@ -574,18 +569,18 @@ def run_lstm_evaluation(
     5. Generate predictions for validation split and evaluate via evaluate.py.
     6. Write reports/results_lstm_val.md.
     """
-    start_time = datetime.datetime.now()
+    start_time = datetime.datetime.now(datetime.UTC)
     set_seed(SEED)
 
     (
-        series_matrices,
+        _series_matrices,
         scaled_series_matrices,
         fac_to_idx,
         grp_to_idx,
         all_dates,
         facility_cal_matrices,
         scaler,
-        cal_scaler,
+        _cal_scaler,
     ) = prepare_lstm_data()
 
     # Define training and validation origin sets
@@ -669,7 +664,7 @@ def run_lstm_evaluation(
     print(f"Evaluating LSTM model on '{split}' split via evaluate.py...")
     eval_res = evaluate(preds_val, split=split, model_name="lstm", reports_dir=reports_dir)
 
-    elapsed = (datetime.datetime.now() - start_time).total_seconds()
+    elapsed = (datetime.datetime.now(datetime.UTC) - start_time).total_seconds()
     print(f"Task 3.4 completed in {elapsed / 60:.2f} minutes.")
 
     return {

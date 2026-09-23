@@ -745,6 +745,33 @@ def evaluate(
 
     print(f"Saved evaluation report: {report_file}")
 
+    # 8. Write JSON Report
+    report_json_file = reports_dir / f"results_{model_name}_{split_norm}.json"
+    json_payload = {
+        "model_name": model_name,
+        "split": split_norm,
+        "overall": breakdown_results["overall"],
+        "shortfall": shortfall_results,
+        "by_horizon": {str(k): v for k, v in breakdown_results["by_horizon"].items()},
+        "by_group": breakdown_results["by_group"],
+        "by_tier": breakdown_results["by_tier"],
+        "by_holiday": breakdown_results["by_holiday"],
+    }
+
+    def _json_default(obj):
+        if isinstance(obj, (np.integer, np.floating)):
+            return float(obj) if isinstance(obj, np.floating) else int(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif pd.isna(obj):
+            return None
+        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+    with open(report_json_file, "w", encoding="utf-8") as f:
+        json.dump(json_payload, f, indent=2, default=_json_default)
+
+    print(f"Saved JSON report: {report_json_file}")
+
     return {
         "model_name": model_name,
         "split": split_norm,
@@ -755,4 +782,5 @@ def evaluate(
         "by_tier": breakdown_results["by_tier"],
         "by_holiday": breakdown_results["by_holiday"],
         "report_file": str(report_file),
+        "report_json_file": str(report_json_file),
     }

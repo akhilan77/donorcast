@@ -31,7 +31,9 @@ def synthetic_sarima_data():
                 grp_mult = 1.5 if grp == "O" else 1.0
                 # Base volume with weekday seasonality
                 base = (20.0 + 8.0 * np.sin(2 * np.pi * w / 7)) * fac_mult * grp_mult
-                rows.append({"facility": fac, "group": grp, "date": d_str, "donations": float(base)})
+                rows.append(
+                    {"facility": fac, "group": grp, "date": d_str, "donations": float(base)}
+                )
 
     long_df = pd.DataFrame(rows)
 

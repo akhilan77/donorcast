@@ -10,6 +10,7 @@
 """
 
 import json
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -126,14 +127,14 @@ def test_donor_lstm_forward_shape():
 def test_train_and_predict_lstm(synthetic_lstm_data):
     long_df, calendar_df, facility_state_df = synthetic_lstm_data
     (
-        series_matrices,
+        _series_matrices,
         scaled_series_matrices,
         fac_to_idx,
         grp_to_idx,
         all_dates,
         facility_cal_matrices,
         scaler,
-        cal_scaler,
+        _cal_scaler,
     ) = prepare_lstm_data(long_df, calendar_df, facility_state_df)
 
     train_origins = ["2021-06-07", "2021-06-14", "2021-06-21"]
@@ -168,7 +169,7 @@ def test_train_and_predict_lstm(synthetic_lstm_data):
     assert len(train_samples) == len(train_origins) * 4
     assert len(val_samples) == len(val_origins) * 4
 
-    model, best_epoch, best_es_loss = train_lstm_model(
+    model, best_epoch, _best_es_loss = train_lstm_model(
         train_samples,
         es_samples,
         num_facilities=2,
@@ -212,7 +213,7 @@ def test_no_future_leakage_lstm(synthetic_lstm_data):
         all_dates,
         facility_cal_matrices,
         scaler,
-        cal_scaler,
+        _cal_scaler,
     ) = prepare_lstm_data(long_df, calendar_df, facility_state_df)
 
     train_origins = ["2021-06-07"]
@@ -220,13 +221,23 @@ def test_no_future_leakage_lstm(synthetic_lstm_data):
     origin_val = "2023-01-09"
 
     train_samples = build_samples_for_origins(
-        train_origins, scaled_series_matrices, fac_to_idx, grp_to_idx, all_dates, facility_cal_matrices
+        train_origins,
+        scaled_series_matrices,
+        fac_to_idx,
+        grp_to_idx,
+        all_dates,
+        facility_cal_matrices,
     )
     es_samples = build_samples_for_origins(
         es_origins, scaled_series_matrices, fac_to_idx, grp_to_idx, all_dates, facility_cal_matrices
     )
     val_samples = build_samples_for_origins(
-        [origin_val], scaled_series_matrices, fac_to_idx, grp_to_idx, all_dates, facility_cal_matrices
+        [origin_val],
+        scaled_series_matrices,
+        fac_to_idx,
+        grp_to_idx,
+        all_dates,
+        facility_cal_matrices,
     )
 
     model, _, _ = train_lstm_model(
@@ -246,8 +257,8 @@ def test_no_future_leakage_lstm(synthetic_lstm_data):
     # Mutate data in series matrix after origin_val date in future
     corrupted_matrices = {k: v.copy() for k, v in scaled_series_matrices.items()}
     val_idx = all_dates.index(origin_val)
-    for k in corrupted_matrices:
-        corrupted_matrices[k][val_idx + 1 :] = 999999.0
+    for matrix in corrupted_matrices.values():
+        matrix[val_idx + 1 :] = 999999.0
 
     val_samples_corrupted = build_samples_for_origins(
         [origin_val], corrupted_matrices, fac_to_idx, grp_to_idx, all_dates, facility_cal_matrices
@@ -270,14 +281,24 @@ def test_versioned_lstm_saving(synthetic_lstm_data, tmp_path):
         all_dates,
         facility_cal_matrices,
         scaler,
-        cal_scaler,
+        _cal_scaler,
     ) = prepare_lstm_data(long_df, calendar_df, facility_state_df)
 
     train_samples = build_samples_for_origins(
-        ["2021-06-07"], scaled_series_matrices, fac_to_idx, grp_to_idx, all_dates, facility_cal_matrices
+        ["2021-06-07"],
+        scaled_series_matrices,
+        fac_to_idx,
+        grp_to_idx,
+        all_dates,
+        facility_cal_matrices,
     )
     es_samples = build_samples_for_origins(
-        ["2022-08-01"], scaled_series_matrices, fac_to_idx, grp_to_idx, all_dates, facility_cal_matrices
+        ["2022-08-01"],
+        scaled_series_matrices,
+        fac_to_idx,
+        grp_to_idx,
+        all_dates,
+        facility_cal_matrices,
     )
 
     model, best_epoch, best_es_loss = train_lstm_model(

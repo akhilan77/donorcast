@@ -29,7 +29,6 @@ import numpy as np
 import pandas as pd
 
 from donorcast.config import (
-    DATA_PROCESSED_DIR,
     FEATURES_DIR,
     PROJECT_ROOT,
     REPORTS_DIR,
@@ -237,7 +236,15 @@ def predict_lgbm(
     """
     if len(df_eval) == 0:
         return pd.DataFrame(
-            columns=["facility", "group", "origin_date", "horizon", "target_date", "target", "prediction"]
+            columns=[
+                "facility",
+                "group",
+                "origin_date",
+                "horizon",
+                "target_date",
+                "target",
+                "prediction",
+            ]
         )
 
     X_eval = df_eval[feature_cols]
@@ -477,9 +484,7 @@ def run_ablation_study(
             winning_model = model
             winning_preds = preds_val
 
-    print(
-        f"Ablation winner: TRAIN_START={winning_train_start} with Val WAPE = {winning_wape:.4f}"
-    )
+    print(f"Ablation winner: TRAIN_START={winning_train_start} with Val WAPE = {winning_wape:.4f}")
     return ablation_records, winning_train_start, winning_wape, winning_model, winning_preds
 
 

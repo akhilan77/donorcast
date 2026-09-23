@@ -8,6 +8,7 @@
 """
 
 import json
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -101,9 +102,7 @@ def test_train_and_predict_lgbm(synthetic_features_dataset):
     df, feature_cols = synthetic_features_dataset
 
     df_train_fit = df[df["origin_date"] < "2022-07-01"]
-    df_train_es = df[
-        (df["origin_date"] >= "2022-07-01") & (df["origin_date"] <= "2022-12-31")
-    ]
+    df_train_es = df[(df["origin_date"] >= "2022-07-01") & (df["origin_date"] <= "2022-12-31")]
     df_val = df[df["origin_date"] >= "2023-01-01"]
 
     params = {
@@ -113,9 +112,7 @@ def test_train_and_predict_lgbm(synthetic_features_dataset):
         "tweedie_variance_power": 1.5,
     }
 
-    model, best_iter = train_single_lgbm(
-        df_train_fit, df_train_es, feature_cols, params, seed=42
-    )
+    model, best_iter = train_single_lgbm(df_train_fit, df_train_es, feature_cols, params, seed=42)
 
     assert model is not None
     assert best_iter > 0
@@ -152,9 +149,7 @@ def test_no_future_leakage_lgbm(synthetic_features_dataset):
         "min_data_in_leaf": 5,
         "tweedie_variance_power": 1.5,
     }
-    model, _ = train_single_lgbm(
-        df_train_fit, df_train_es, feature_cols, params, seed=42
-    )
+    model, _ = train_single_lgbm(df_train_fit, df_train_es, feature_cols, params, seed=42)
 
     valid_eval_origins = [d for d in df["origin_date"].unique() if d >= "2023-01-01"]
     origin_eval = valid_eval_origins[0]
@@ -178,9 +173,7 @@ def test_no_future_leakage_lgbm(synthetic_features_dataset):
 def test_versioned_model_saving(synthetic_features_dataset, tmp_path):
     df, feature_cols = synthetic_features_dataset
     df_train_fit = df[df["origin_date"] < "2022-07-01"]
-    df_train_es = df[
-        (df["origin_date"] >= "2022-07-01") & (df["origin_date"] <= "2022-12-31")
-    ]
+    df_train_es = df[(df["origin_date"] >= "2022-07-01") & (df["origin_date"] <= "2022-12-31")]
 
     params = {
         "num_leaves": 15,
@@ -188,9 +181,7 @@ def test_versioned_model_saving(synthetic_features_dataset, tmp_path):
         "min_data_in_leaf": 5,
         "tweedie_variance_power": 1.5,
     }
-    model, _ = train_single_lgbm(
-        df_train_fit, df_train_es, feature_cols, params, seed=42
-    )
+    model, _ = train_single_lgbm(df_train_fit, df_train_es, feature_cols, params, seed=42)
 
     v1_dir = save_lgbm_model_version(
         model,
@@ -235,9 +226,7 @@ def test_train_quantile_lgbm_and_predictions(synthetic_features_dataset):
 
     df, feature_cols = synthetic_features_dataset
     df_train_fit = df[df["origin_date"] < "2022-07-01"]
-    df_train_es = df[
-        (df["origin_date"] >= "2022-07-01") & (df["origin_date"] <= "2022-12-31")
-    ]
+    df_train_es = df[(df["origin_date"] >= "2022-07-01") & (df["origin_date"] <= "2022-12-31")]
     df_val = df[df["origin_date"] >= "2023-01-01"]
 
     params = {
@@ -246,9 +235,7 @@ def test_train_quantile_lgbm_and_predictions(synthetic_features_dataset):
         "min_data_in_leaf": 5,
     }
 
-    model_point, _ = train_single_lgbm(
-        df_train_fit, df_train_es, feature_cols, params, seed=42
-    )
+    model_point, _ = train_single_lgbm(df_train_fit, df_train_es, feature_cols, params, seed=42)
     model_p10, _ = train_quantile_lgbm(
         df_train_fit, df_train_es, feature_cols, params, alpha=0.1, seed=42
     )
@@ -256,9 +243,7 @@ def test_train_quantile_lgbm_and_predictions(synthetic_features_dataset):
         df_train_fit, df_train_es, feature_cols, params, alpha=0.9, seed=42
     )
 
-    preds_df = predict_lgbm_with_quantiles(
-        model_point, model_p10, model_p90, df_val, feature_cols
-    )
+    preds_df = predict_lgbm_with_quantiles(model_point, model_p10, model_p90, df_val, feature_cols)
 
     assert "pred_p10" in preds_df.columns
     assert "pred_p90" in preds_df.columns
@@ -294,9 +279,7 @@ def test_save_quantile_models(synthetic_features_dataset, tmp_path):
 
     df, feature_cols = synthetic_features_dataset
     df_train_fit = df[df["origin_date"] < "2022-07-01"]
-    df_train_es = df[
-        (df["origin_date"] >= "2022-07-01") & (df["origin_date"] <= "2022-12-31")
-    ]
+    df_train_es = df[(df["origin_date"] >= "2022-07-01") & (df["origin_date"] <= "2022-12-31")]
 
     params = {"num_leaves": 15, "learning_rate": 0.05, "min_data_in_leaf": 5}
     model_p10, _ = train_quantile_lgbm(
@@ -326,4 +309,3 @@ def test_save_quantile_models(synthetic_features_dataset, tmp_path):
     assert "quantile_models" in cfg
     assert cfg["quantile_models"]["p10"] == "model_p10.txt"
     assert cfg["quantile_models"]["p90"] == "model_p90.txt"
-

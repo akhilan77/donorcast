@@ -53,17 +53,14 @@ def create_parser() -> argparse.ArgumentParser:
             print(f"Unknown model: {args.model}")
 
     def handle_final(args):
-        print("Running final evaluation on test set...")
-        from donorcast.evaluate import FINAL_RUN_FILE
+        print("Starting final model retraining and held-out test evaluation...")
+        from donorcast.final import run_final_evaluation
 
-        if FINAL_RUN_FILE.exists() and not args.force:
-            print(
-                f"Error: Final test set run already completed (found {FINAL_RUN_FILE}). "
-                "Use --force to run again.",
-                file=sys.stderr,
-            )
+        try:
+            run_final_evaluation(force=args.force)
+        except RuntimeError as e:
+            print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
-        print("Final evaluation mode enabled. (Use evaluate with allow_test=True)")
 
     subcommands = [
         ("clean", "Clean raw data and produce processed long parquet format.", handle_clean),

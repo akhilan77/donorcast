@@ -11,7 +11,6 @@ Implements M1:
 - Evaluated on validation split via evaluate.py.
 """
 
-import datetime
 import time
 import warnings
 from pathlib import Path
@@ -161,7 +160,7 @@ def fit_and_forecast_single_series(
                 enforce_invertibility=False,
             )
             res = model.fit(disp=False, maxiter=100)
-        except Exception:
+        except (ValueError, np.linalg.LinAlgError, RuntimeError, IndexError):
             # Fallback to simpler AR(1) order if optimization fails
             try:
                 model = SARIMAX(
@@ -173,7 +172,7 @@ def fit_and_forecast_single_series(
                     enforce_invertibility=False,
                 )
                 res = model.fit(disp=False, maxiter=100)
-            except Exception:
+            except (ValueError, np.linalg.LinAlgError, RuntimeError, IndexError):
                 # Ultimate fallback to naive mean
                 res = None
 
@@ -213,7 +212,9 @@ def fit_and_forecast_single_series(
                     forecast_vals = np.maximum(0.0, forecast_vals)
                 except (ValueError, np.linalg.LinAlgError, RuntimeError):
                     # Fallback to mean of last 28 days
-                    recent_slice = series.loc[max(series.index[0], t_ts - pd.Timedelta(days=27)) : t_ts]
+                    recent_slice = series.loc[
+                        max(series.index[0], t_ts - pd.Timedelta(days=27)) : t_ts
+                    ]
                     forecast_vals = np.full(horizon, max(0.0, float(recent_slice.mean())))
         else:
             recent_slice = series.loc[max(series.index[0], t_ts - pd.Timedelta(days=27)) : t_ts]
@@ -284,8 +285,8 @@ def run_order_selection_grid(
                     aics.append(res.aic)
                     bics.append(res.bic)
                     converged_count += 1
-                except Exception:
-                    pass
+                except (ValueError, np.linalg.LinAlgError, RuntimeError, IndexError):
+                    continue
             t1 = time.perf_counter()
             fit_times.append(t1 - t0)
 
@@ -530,9 +531,7 @@ def run_sarima_evaluation(
     long_df = pd.read_parquet(long_path)
 
     print("Preparing series and exogenous features for SARIMAX...")
-    series_dict, facility_exog_dict, _facility_to_state, _all_dates = prepare_data_and_exog(
-        long_df
-    )
+    series_dict, facility_exog_dict, _facility_to_state, _all_dates = prepare_data_and_exog(long_df)
 
     # Optional order selection grid on representative series
     print("\nRunning Order Selection Grid Search on 5 representative series...")
