@@ -113,7 +113,7 @@ def create_parser() -> argparse.ArgumentParser:
         d1 = time.perf_counter() - t0
         timings.append(("1. Data Cleaning & Integrity", "COMPLETED", d1))
         print(
-            f"✓ [1/5] Clean finished in {d1:.2f}s "
+            f"[OK] [1/5] Clean finished in {d1:.2f}s "
             f"({summary['output_rows']:,} rows saved to data/processed/long.parquet)\n"
         )
 
@@ -124,7 +124,7 @@ def create_parser() -> argparse.ArgumentParser:
         d2 = time.perf_counter() - t0
         timings.append(("2. Multi-Horizon Features", "COMPLETED", d2))
         print(
-            f"✓ [2/5] Features finished in {d2:.2f}s "
+            f"[OK] [2/5] Features finished in {d2:.2f}s "
             f"({len(saved_features)} yearly partitions generated)\n"
         )
 
@@ -135,7 +135,7 @@ def create_parser() -> argparse.ArgumentParser:
         d3 = time.perf_counter() - t0
         timings.append(("3. Baseline Models (M0, M0b)", "COMPLETED", d3))
         print(
-            f"✓ [3/5] Baselines finished in {d3:.2f}s "
+            f"[OK] [3/5] Baselines finished in {d3:.2f}s "
             f"(Report: {res_baselines['summary_file']})\n"
         )
 
@@ -146,7 +146,7 @@ def create_parser() -> argparse.ArgumentParser:
         d4 = time.perf_counter() - t0
         timings.append(("4. Train LightGBM + Quantiles", "COMPLETED", d4))
         print(
-            f"✓ [4/5] Training finished in {d4:.2f}s "
+            f"[OK] [4/5] Training finished in {d4:.2f}s "
             f"(Artifacts saved: {res_lgbm['version_dir']})\n"
         )
 
@@ -161,7 +161,7 @@ def create_parser() -> argparse.ArgumentParser:
         d5 = time.perf_counter() - t0
         timings.append(("5. Shortfall Alerts & Forecasts", "COMPLETED", d5))
         print(
-            f"✓ [5/5] Alerts finished in {d5:.2f}s "
+            f"[OK] [5/5] Alerts finished in {d5:.2f}s "
             f"(Saved {len(res_alerts)} alerts for {origin})\n"
         )
 
