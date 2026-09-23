@@ -1,0 +1,39 @@
+[project]
+name = "donorcast"
+version = "0.1.0"
+description = "Forecasting daily blood donations and shortfall detection for Malaysia MoH National Blood Centre"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pandas>=2.2.0",
+    "numpy>=1.26.0",
+    "pyarrow>=15.0.0",
+    "requests>=2.31.0",
+    "holidays>=0.45",
+    "hijri-converter>=2.3.1",
+    "statsmodels>=0.14.0",
+    "lightgbm>=4.3.0",
+    "torch>=2.2.0",
+    "shap>=0.45.0",
+    "streamlit>=1.33.0",
+    "pytest>=8.0.0",
+    "ruff>=0.3.0",
+]
+
+[project.scripts]
+donorcast = "donorcast.cli:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

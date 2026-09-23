@@ -1,0 +1,11 @@
+# Caches and virtual environments
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Processed intermediate data and outputs (data/raw/ is tracked and committed)
+data/processed/*.parquet
+reports/figures/*.png
