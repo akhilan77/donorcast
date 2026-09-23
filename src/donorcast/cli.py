@@ -9,17 +9,18 @@ def create_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
 
-    from donorcast.clean import clean_data
-    from donorcast.features import generate_all_feature_datasets
-
     def handle_clean(args):
         print("Running data cleaning and verification...")
+        from donorcast.clean import clean_data
+
         _, summary = clean_data()
         print(f"Data cleaning completed successfully. Output rows: {summary['output_rows']:,}")
         print("Saved data/processed/long.parquet and reports/cleaning_log.md")
 
     def handle_features(args):
         print("Running multi-horizon feature generation...")
+        from donorcast.features import generate_all_feature_datasets
+
         saved_files = generate_all_feature_datasets()
         print(f"Feature generation completed. {len(saved_files)} files saved.")
 
@@ -81,6 +82,107 @@ def create_parser() -> argparse.ArgumentParser:
         else:
             generate_and_save_alerts(origin_date=args.origin)
 
+    def handle_all(args):
+        import time
+
+        from donorcast.clean import clean_data
+        from donorcast.features import generate_all_feature_datasets
+        from donorcast.models.baselines import run_baselines_evaluation
+        from donorcast.models.lgbm import run_lgbm_evaluation
+        from donorcast.shortfall import generate_and_save_alerts, precompute_replay_origins
+
+        origin = getattr(args, "origin", DATA_CUTOFF)
+        precompute_replay = getattr(args, "precompute_replay", False)
+
+        pipeline_start = time.perf_counter()
+        timings: list[tuple[str, str, float]] = []
+
+        print("=" * 80)
+        print("          DONORCAST END-TO-END PIPELINE ORCHESTRATOR")
+        print("=" * 80)
+        print(f"Origin Date:            {origin}")
+        print(f"Precompute Replay:      {precompute_replay}")
+        print("Pipeline Sequence:      1. Clean -> 2. Features -> 3. Baselines -> 4. Train -> 5. Alerts")
+        print("Test Set Policy:        Skips 'final' (manual held-out test evaluation only)")
+        print("=" * 80 + "\n")
+
+        # Stage 1: Data Cleaning
+        print(">>> [1/5] RUNNING DATA CLEANING & RECONCILIATION CHECKS...")
+        t0 = time.perf_counter()
+        _, summary = clean_data()
+        d1 = time.perf_counter() - t0
+        timings.append(("1. Data Cleaning & Integrity", "COMPLETED", d1))
+        print(
+            f"✓ [1/5] Clean finished in {d1:.2f}s "
+            f"({summary['output_rows']:,} rows saved to data/processed/long.parquet)\n"
+        )
+
+        # Stage 2: Multi-Horizon Features
+        print(">>> [2/5] RUNNING MULTI-HORIZON FEATURE GENERATION...")
+        t0 = time.perf_counter()
+        saved_features = generate_all_feature_datasets()
+        d2 = time.perf_counter() - t0
+        timings.append(("2. Multi-Horizon Features", "COMPLETED", d2))
+        print(
+            f"✓ [2/5] Features finished in {d2:.2f}s "
+            f"({len(saved_features)} yearly partitions generated)\n"
+        )
+
+        # Stage 3: Baseline Models (M0, M0b)
+        print(">>> [3/5] RUNNING BASELINE MODELS EVALUATION (M0 & M0b)...")
+        t0 = time.perf_counter()
+        res_baselines = run_baselines_evaluation(split="val")
+        d3 = time.perf_counter() - t0
+        timings.append(("3. Baseline Models (M0, M0b)", "COMPLETED", d3))
+        print(
+            f"✓ [3/5] Baselines finished in {d3:.2f}s "
+            f"(Report: {res_baselines['summary_file']})\n"
+        )
+
+        # Stage 4: Train Selected Model (LightGBM + Quantiles)
+        print(">>> [4/5] TRAINING SELECTED MODEL (LightGBM + Quantiles p10/p90)...")
+        t0 = time.perf_counter()
+        res_lgbm = run_lgbm_evaluation(split="val")
+        d4 = time.perf_counter() - t0
+        timings.append(("4. Train LightGBM + Quantiles", "COMPLETED", d4))
+        print(
+            f"✓ [4/5] Training finished in {d4:.2f}s "
+            f"(Artifacts saved: {res_lgbm['version_dir']})\n"
+        )
+
+        # Stage 5: Alerts & Forecasts
+        print(">>> [5/5] GENERATING 14-DAY FORECASTS & SHORTFALL ALERTS...")
+        t0 = time.perf_counter()
+        if precompute_replay:
+            print("Precomputing historical replay origins...")
+            precompute_replay_origins()
+            print(f"Generating live alerts for origin: {origin}...")
+        res_alerts = generate_and_save_alerts(origin_date=origin)
+        d5 = time.perf_counter() - t0
+        timings.append(("5. Shortfall Alerts & Forecasts", "COMPLETED", d5))
+        print(
+            f"✓ [5/5] Alerts finished in {d5:.2f}s "
+            f"(Saved {len(res_alerts)} alerts for {origin})\n"
+        )
+
+        total_time = time.perf_counter() - pipeline_start
+        mins, secs = divmod(total_time, 60)
+
+        # Final Summary Banner
+        print("=" * 80)
+        print("                    DONORCAST PIPELINE EXECUTION SUMMARY")
+        print("=" * 80)
+        print(f"{'Pipeline Stage':<38} | {'Status':<10} | {'Duration (s)':>12}")
+        print("-" * 80)
+        for stage, status, dur in timings:
+            print(f"{stage:<38} | {status:<10} | {dur:>10.2f}s")
+        print("-" * 80)
+        print(
+            f"{'TOTAL RUNTIME':<38} | {'SUCCESS':<10} | "
+            f"{total_time:>10.2f}s ({int(mins)}m {secs:04.1f}s)"
+        )
+        print("=" * 80)
+
     from donorcast.config import DATA_CUTOFF
 
     subcommands = [
@@ -91,7 +193,7 @@ def create_parser() -> argparse.ArgumentParser:
         ("final", "Run final evaluation on test set.", handle_final),
         ("explain", "Generate global SHAP summary plots and explainability artifacts.", handle_explain),
         ("alerts", "Generate shortfall alerts table and 14-day forecasts.", handle_alerts),
-        ("all", "Run the entire end-to-end pipeline.", None),
+        ("all", "Run the entire end-to-end pipeline.", handle_all),
     ]
 
     for cmd, help_text, handler in subcommands:
@@ -123,7 +225,7 @@ def create_parser() -> argparse.ArgumentParser:
                 default=1000,
                 help="Number of test rows to sample for SHAP summary (default: 1000).",
             )
-        elif cmd == "alerts":
+        elif cmd in ("alerts", "all"):
             subparser.add_argument(
                 "--origin",
                 type=str,

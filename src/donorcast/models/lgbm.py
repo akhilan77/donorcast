@@ -609,6 +609,7 @@ def run_lgbm_evaluation(
         winning_model, _ = train_single_lgbm(
             df_train_fit, df_train_es, feature_cols, best_params, seed=SEED
         )
+        winning_model.booster_.save_model(str(version_dir / "model.txt"))
     else:
         # 1. Tuning search
         tuning_records, best_params = run_tuning_search(df_all, feature_cols, max_trials=20)
