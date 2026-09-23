@@ -2,7 +2,7 @@
 
 - **Model**: `lstm`
 - **Split**: `val`
-- **Evaluated at**: `2026-09-23T09:42:01.995305+00:00`
+- **Evaluated at**: `2026-09-23T10:08:20.426894+00:00`
 - **Total Rows Evaluated**: 127,688
 
 ---

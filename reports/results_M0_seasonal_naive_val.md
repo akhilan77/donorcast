@@ -2,7 +2,7 @@
 
 - **Model**: `M0_seasonal_naive`
 - **Split**: `val`
-- **Evaluated at**: `2026-09-23T08:25:14.088807+00:00`
+- **Evaluated at**: `2026-09-23T10:11:59.624402+00:00`
 - **Total Rows Evaluated**: 127,688
 
 ---

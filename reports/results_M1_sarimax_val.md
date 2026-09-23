@@ -2,7 +2,7 @@
 
 - **Model**: `M1_sarimax`
 - **Split**: `val`
-- **Evaluated at**: `2026-09-23T08:24:21.962340+00:00`
+- **Evaluated at**: `2026-09-23T10:11:10.970738+00:00`
 - **Total Rows Evaluated**: 127,688
 
 ---

@@ -1,0 +1,15 @@
+{
+  "model_name": "lstm",
+  "version": "v002",
+  "lookback": 56,
+  "horizon": 14,
+  "hidden_size": 64,
+  "num_layers": 1,
+  "embed_fac_dim": 8,
+  "embed_grp_dim": 8,
+  "best_epoch": 1,
+  "best_es_loss": 1.1117713299314997,
+  "validation_wape": 0.4390496473655314,
+  "dataset_version": "v2026-09-22",
+  "saved_at": "2026-09-23T10:07:30.479573+00:00"
+}

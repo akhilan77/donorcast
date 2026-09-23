@@ -4,7 +4,7 @@
 - **Order Specification**: `SARIMAX(1, 0, 1)x(1, 0, 1, 7)`
 - **Exogenous Variables**: `is_public_holiday, is_school_holiday, is_ramadan, is_mco` (Facility's State)
 - **Estimation Strategy**: Fit once on last 3 years of train (`2020-01-01` to `2022-12-31`), rolling state update via `extend(refit=False)` across all validation origins
-- **Total Runtime (Fit + State Updating + 14D Forecast)**: **49.08 seconds** (0.82 minutes)
+- **Total Runtime (Fit + State Updating + 14D Forecast)**: **53.60 seconds** (0.89 minutes)
 - **Evaluation Period**: `2023-01-01` to `2024-12-31` (104 weekly Monday origins)
 - **Forecast Horizons**: 1 to 14 days ahead
 
@@ -16,12 +16,12 @@ Evaluated across representative facilities (Pusat Darah Negara, Melaka, Sultanah
 
 | Order | Seasonal Order | Mean AIC | Mean BIC | Avg Fit Time (s) | Converged |
 |---|---|---|---|---|---|
-| `(1, 0, 1)` | `(0, 1, 1, 7)` | 8471.6 | 8511.5 | 1.48s | 5/5 |
-| `(1, 1, 1)` | `(0, 1, 1, 7)` | 8484.4 | 8524.2 | 1.67s | 5/5 |
-| `(1, 0, 1)` | `(1, 0, 1, 7)` | 8581.4 | 8626.3 | 1.23s | 5/5 |
-| `(2, 0, 1)` | `(1, 0, 1, 7)` | 8683.2 | 8733.1 | 1.49s | 5/5 |
-| `(2, 0, 0)` | `(1, 0, 0, 7)` | 8847.0 | 8886.9 | 0.86s | 5/5 |
-| `(1, 0, 0)` | `(1, 0, 0, 7)` | 8874.5 | 8909.5 | 0.59s | 5/5 |
+| `(1, 0, 1)` | `(0, 1, 1, 7)` | 8471.6 | 8511.5 | 1.49s | 5/5 |
+| `(1, 1, 1)` | `(0, 1, 1, 7)` | 8484.4 | 8524.2 | 1.76s | 5/5 |
+| `(1, 0, 1)` | `(1, 0, 1, 7)` | 8581.4 | 8626.3 | 1.25s | 5/5 |
+| `(2, 0, 1)` | `(1, 0, 1, 7)` | 8683.2 | 8733.1 | 1.51s | 5/5 |
+| `(2, 0, 0)` | `(1, 0, 0, 7)` | 8847.0 | 8886.9 | 0.90s | 5/5 |
+| `(1, 0, 0)` | `(1, 0, 0, 7)` | 8874.5 | 8909.5 | 0.58s | 5/5 |
 
 ---
 

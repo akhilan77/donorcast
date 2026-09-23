@@ -2,7 +2,7 @@
 
 - **Model**: `lgbm`
 - **Split**: `val`
-- **Evaluated at**: `2026-09-23T09:10:18.742180+00:00`
+- **Evaluated at**: `2026-09-23T10:03:03.883695+00:00`
 - **Total Rows Evaluated**: 127,688
 
 ---
