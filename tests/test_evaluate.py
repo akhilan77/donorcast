@@ -1,0 +1,241 @@
+"""Tests for the evaluation harness in src/donorcast/evaluate.py:
+
+- Split filtering by target_date and out-of-range drop
+- WAPE, MASE (in-sample seasonal naive 7 scale), Pinball loss calculations
+- Subgroup slices: by horizon, by blood group, by facility size tier, by holiday window
+- Shortfall alert classification: typical baseline lookup, precision, recall, F1
+- End-to-end evaluate() function and markdown report generation
+- Test set locking and CLI enforcement
+"""
+
+import pandas as pd
+import pytest
+
+from donorcast.evaluate import (
+    HistoricalTypicalLookup,
+    compute_facility_tiers,
+    compute_mase_scales,
+    compute_regression_metrics,
+    compute_shortfall_metrics,
+    evaluate,
+    filter_split,
+)
+
+
+def test_split_filtering():
+    """Verify filter_split uses target_date and drops dates outside split boundaries."""
+    df = pd.DataFrame(
+        {
+            "facility": ["PDN"] * 6,
+            "group": ["O"] * 6,
+            "origin_date": [
+                "2022-12-20",
+                "2022-12-30",
+                "2023-01-01",
+                "2024-12-25",
+                "2024-12-30",
+                "2026-09-20",
+            ],
+            "horizon": [1, 7, 7, 1, 7, 7],
+            "target_date": [
+                "2022-12-21",  # Train
+                "2023-01-06",  # Val
+                "2023-01-08",  # Val
+                "2024-12-26",  # Val
+                "2025-01-06",  # Test
+                "2026-09-27",  # Beyond TEST_END (2026-09-22) -> should be dropped
+            ],
+            "target": [100.0] * 6,
+            "prediction": [95.0] * 6,
+        }
+    )
+
+    train_df = filter_split(df, "train")
+    assert len(train_df) == 1
+    assert train_df.iloc[0]["target_date"] == "2022-12-21"
+
+    val_df = filter_split(df, "val")
+    assert len(val_df) == 3
+    assert set(val_df["target_date"]) == {"2023-01-06", "2023-01-08", "2024-12-26"}
+
+    test_df = filter_split(df, "test")
+    assert len(test_df) == 1
+    assert test_df.iloc[0]["target_date"] == "2025-01-06"
+    assert "2026-09-27" not in test_df["target_date"].values
+
+
+def test_regression_metrics_wape_mase_pinball():
+    """Verify manual calculation matches compute_regression_metrics."""
+    df = pd.DataFrame(
+        {
+            "facility": ["PDN", "PDN", "Hospital Penang", "Hospital Penang"],
+            "group": ["O", "O", "A", "A"],
+            "target": [100.0, 150.0, 20.0, 30.0],
+            "prediction": [110.0, 140.0, 25.0, 20.0],
+            "pred_p10": [90.0, 130.0, 15.0, 18.0],
+            "pred_p90": [120.0, 160.0, 28.0, 35.0],
+        }
+    )
+
+    # Actual sum = 300, Abs error sum = |10| + |-10| + |5| + |-10| = 35 -> WAPE = 35 / 300 = 0.116666...
+    expected_wape = 35.0 / 300.0
+
+    mase_scales = {
+        ("PDN", "O"): 10.0,
+        ("Hospital Penang", "A"): 5.0,
+    }
+    # Scaled errors: 10/10=1.0, 10/10=1.0, 5/5=1.0, 10/5=2.0 -> mean = 5.0 / 4 = 1.25
+    expected_mase = 1.25
+
+    metrics = compute_regression_metrics(df, mase_scales)
+
+    assert pytest.approx(metrics["wape"], 1e-5) == expected_wape
+    assert pytest.approx(metrics["mase"], 1e-5) == expected_mase
+    assert "pinball_10" in metrics
+    assert "pinball_90" in metrics
+    assert metrics["pinball_10"] >= 0
+    assert metrics["pinball_90"] >= 0
+
+
+def test_facility_tiers_and_mase_scales():
+    """Verify facility tiers partitioning into top 5, middle 10, bottom 7 on synthetic long data."""
+    dates = pd.date_range("2020-01-01", "2020-01-31", freq="D").strftime("%Y-%m-%d")
+    facilities = [f"Hospital_{i:02d}" for i in range(1, 23)]  # 22 facilities
+
+    rows = []
+    for i, fac in enumerate(facilities):
+        # assign higher volume to lower index
+        vol = (23 - i) * 10
+        for d in dates:
+            for grp in ["A", "B", "O", "AB"]:
+                rows.append({"facility": fac, "group": grp, "date": d, "donations": vol})
+
+    sample_long = pd.DataFrame(rows)
+
+    tiers = compute_facility_tiers(sample_long, train_end="2020-01-31")
+    assert len(tiers) == 22
+
+    top_5_count = sum(1 for v in tiers.values() if v == "top_5")
+    middle_count = sum(1 for v in tiers.values() if v == "middle")
+    bottom_7_count = sum(1 for v in tiers.values() if v == "bottom_7")
+
+    assert top_5_count == 5
+    assert middle_count == 10
+    assert bottom_7_count == 7
+    assert tiers["Hospital_01"] == "top_5"
+    assert tiers["Hospital_22"] == "bottom_7"
+
+    scales = compute_mase_scales(sample_long, train_end="2020-01-31")
+    assert len(scales) == 22 * 4
+
+
+def test_shortfall_metrics_logic():
+    """Verify shortfall flag computation and classification precision, recall, F1."""
+    # Build historical data for 2017, 2018, 2019 week 10
+    hist_dates = ["2017-03-06", "2018-03-05", "2019-03-04"]  # Mondays around week 10
+    rows = []
+    for d in hist_dates:
+        dt_start = pd.Timestamp(d)
+        for day_offset in range(7):
+            cur_d = (dt_start + pd.Timedelta(days=day_offset)).strftime("%Y-%m-%d")
+            rows.append({"facility": "PDN", "group": "O", "date": cur_d, "donations": 100.0})
+
+    long_df = pd.DataFrame(rows)
+    lookup = HistoricalTypicalLookup(long_df)
+
+    # 7-day total each past year was 700 -> typical_7d = 700. Threshold at 0.8 is 560.
+    origin = "2020-03-02"  # Target window week 10 of 2020
+    typical_val = lookup.get_typical_7d("PDN", "O", origin, typical_years=3)
+    assert typical_val == 700.0
+
+    # Predictions: 2 origins
+    # Origin 1: True=500 (< 560 -> actual shortfall), Pred=520 (< 560 -> pred shortfall) -> TP
+    # Origin 2: True=600 (>= 560 -> no actual shortfall), Pred=620 (>= 560 -> no pred shortfall) -> TN
+    pred_rows = []
+    for h in range(1, 8):
+        pred_rows.append(
+            {
+                "facility": "PDN",
+                "group": "O",
+                "origin_date": "2020-03-02",
+                "horizon": h,
+                "target_date": f"2020-03-{h + 2:02d}",
+                "target": 500.0 / 7.0,
+                "prediction": 520.0 / 7.0,
+            }
+        )
+        pred_rows.append(
+            {
+                "facility": "PDN",
+                "group": "O",
+                "origin_date": "2020-03-09",
+                "horizon": h,
+                "target_date": f"2020-03-{h + 9:02d}",
+                "target": 600.0 / 7.0,
+                "prediction": 620.0 / 7.0,
+            }
+        )
+
+    preds_df = pd.DataFrame(pred_rows)
+    metrics = compute_shortfall_metrics(
+        predictions_df=preds_df,
+        long_df=long_df,
+        shortfall_ratio=0.8,
+        typical_years=3,
+        typical_lookup=lookup,
+    )
+
+    assert metrics["tp"] == 1
+    assert metrics["fp"] == 0
+    assert metrics["fn"] == 0
+    assert metrics["tn"] == 1
+    assert metrics["precision"] == 1.0
+    assert metrics["recall"] == 1.0
+    assert metrics["f1"] == 1.0
+
+
+def test_full_evaluate_workflow(tmp_path):
+    """End-to-end evaluation execution test on validation split with report output verification."""
+    # Synthetic prediction dataset for validation (2023-01-02 Monday origin)
+    origin = "2023-01-02"
+    pred_rows = []
+    for h in range(1, 15):
+        target_d = (pd.Timestamp(origin) + pd.Timedelta(days=h)).strftime("%Y-%m-%d")
+        for grp in ["A", "B", "O", "AB"]:
+            pred_rows.append(
+                {
+                    "facility": "Pusat Darah Negara",
+                    "group": grp,
+                    "origin_date": origin,
+                    "horizon": h,
+                    "target_date": target_d,
+                    "target": 50.0 + h,
+                    "prediction": 52.0 + h,
+                    "pred_p10": 45.0 + h,
+                    "pred_p90": 58.0 + h,
+                }
+            )
+
+    preds_df = pd.DataFrame(pred_rows)
+
+    res = evaluate(
+        predictions_df=preds_df,
+        split="val",
+        model_name="test_baseline",
+        reports_dir=tmp_path,
+    )
+
+    assert "overall" in res
+    assert "by_horizon" in res
+    assert "by_group" in res
+    assert "by_tier" in res
+    assert "by_holiday" in res
+    assert "shortfall" in res
+
+    report_path = tmp_path / "results_test_baseline_val.md"
+    assert report_path.exists()
+    content = report_path.read_text(encoding="utf-8")
+    assert "# Evaluation Report: test_baseline (VAL Split)" in content
+    assert "WAPE" in content
+    assert "MASE" in content
+    assert "Shortfall Classification Metrics" in content

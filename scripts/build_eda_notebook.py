@@ -426,8 +426,8 @@ cells = [
     nbf.v4.new_markdown_cell(s9_md),
 ]
 
-nb['cells'] = cells
-with open('notebooks/01_eda.ipynb', 'w', encoding='utf-8') as f:
+nb["cells"] = cells
+with open("notebooks/01_eda.ipynb", "w", encoding="utf-8") as f:
     nbf.write(nb, f)
 
-print('Successfully generated notebooks/01_eda.ipynb')
+print("Successfully generated notebooks/01_eda.ipynb")

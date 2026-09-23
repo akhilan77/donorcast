@@ -10,6 +10,7 @@ def create_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
 
     from donorcast.clean import clean_data
+    from donorcast.features import generate_all_feature_datasets
 
     def handle_clean(args):
         print("Running data cleaning and verification...")
@@ -17,18 +18,42 @@ def create_parser() -> argparse.ArgumentParser:
         print(f"Data cleaning completed successfully. Output rows: {summary['output_rows']:,}")
         print("Saved data/processed/long.parquet and reports/cleaning_log.md")
 
+    def handle_features(args):
+        print("Running multi-horizon feature generation...")
+        saved_files = generate_all_feature_datasets()
+        print(f"Feature generation completed. {len(saved_files)} files saved.")
+
+    def handle_final(args):
+        print("Running final evaluation on test set...")
+        from donorcast.evaluate import FINAL_RUN_FILE
+
+        if FINAL_RUN_FILE.exists() and not args.force:
+            print(
+                f"Error: Final test set run already completed (found {FINAL_RUN_FILE}). "
+                "Use --force to run again.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        print("Final evaluation mode enabled. (Use evaluate with allow_test=True)")
+
     subcommands = [
         ("clean", "Clean raw data and produce processed long parquet format.", handle_clean),
-        ("features", "Generate time series and calendar features.", None),
+        ("features", "Generate time series and calendar features.", handle_features),
         ("baselines", "Run baseline models (M0, M0b) on validation data.", None),
         ("train", "Train models (SARIMA, LightGBM, LSTM).", None),
-        ("final", "Run final evaluation on test set.", None),
+        ("final", "Run final evaluation on test set.", handle_final),
         ("alerts", "Generate shortfall alerts table.", None),
         ("all", "Run the entire end-to-end pipeline.", None),
     ]
 
     for cmd, help_text, handler in subcommands:
         subparser = subparsers.add_parser(cmd, help=help_text)
+        if cmd == "final":
+            subparser.add_argument(
+                "--force",
+                action="store_true",
+                help="Force re-running the final test evaluation even if final_run.json exists.",
+            )
         if handler:
             subparser.set_defaults(func=handler)
         else:
