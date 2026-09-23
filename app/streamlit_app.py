@@ -42,6 +42,12 @@ REPLAY_LABELS: dict[str, str] = {
 
 BLOOD_GROUPS = ["A", "B", "AB", "O"]
 
+NAV_LABELS: dict[str, str] = {
+    "Overview": "🏠  Executive Overview",
+    "Forecast": "📈  14-Day Forecast",
+    "Shortfall Alerts": "⚠️  Shortfall Alerts",
+}
+
 # Geographical coordinates (Latitude, Longitude, State, Region) for all 22 MoH collection centers
 FACILITY_METADATA: dict[str, dict[str, str | float]] = {
     "Hospital Duchess Of Kent": {"lat": 5.8458, "lon": 118.1068, "state": "Sabah", "region": "East Malaysia"},
@@ -192,32 +198,52 @@ def apply_custom_styles() -> None:
     st.markdown(
         """
         <style>
-        /* Hide default Streamlit top header bar to prevent overlap and clipping */
-        header, [data-testid="stHeader"] {
-            display: none !important;
-            visibility: hidden !important;
-            height: 0 !important;
+        /* 1. Header & Sidebar Controls (Keep collapse/expand button visible & accessible) */
+        header[data-testid="stHeader"] {
+            background: transparent !important;
+            color: #94A3B8 !important;
         }
 
-        /* Base typography & color tokens */
+        [data-testid="stSidebarCollapsedControl"] {
+            display: flex !important;
+            visibility: visible !important;
+            position: fixed !important;
+            top: 12px !important;
+            left: 12px !important;
+            z-index: 999999 !important;
+            background: #1E293B !important;
+            border: 1px solid #3B82F6 !important;
+            border-radius: 8px !important;
+            padding: 4px 8px !important;
+            color: #FFFFFF !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+            cursor: pointer !important;
+        }
+
+        [data-testid="stSidebarCollapsedControl"]:hover {
+            background: #2563EB !important;
+            border-color: #60A5FA !important;
+        }
+
+        /* 2. Base dark typography & theme palette */
         html, body, [data-testid="stAppViewContainer"], .main {
-            background-color: #0E1117 !important;
-            color: #E5E7EB !important;
+            background-color: #0A0E1A !important;
+            color: #E2E8F0 !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
         }
 
-        /* Container width & top alignment */
+        /* 3. Main container width & top alignment */
         .block-container {
-            padding-top: 1.5rem !important;
+            padding-top: 1.25rem !important;
             padding-bottom: 3rem !important;
-            max-width: 1240px !important;
+            max-width: 1260px !important;
         }
 
-        /* Headings hierarchy */
+        /* 4. Headings styling */
         h1, h2, h3 {
             font-weight: 700 !important;
-            color: #F9FAFB !important;
-            letter-spacing: -0.02em !important;
+            color: #F8FAFC !important;
+            letter-spacing: -0.025em !important;
         }
         h1 {
             font-size: 28px !important;
@@ -226,134 +252,176 @@ def apply_custom_styles() -> None:
         .page-subtitle {
             font-size: 14px !important;
             font-weight: 400 !important;
-            color: #9CA3AF !important;
-            margin-bottom: 20px !important;
+            color: #94A3B8 !important;
+            margin-bottom: 22px !important;
             line-height: 1.5 !important;
         }
         .section-title {
-            font-size: 17px !important;
+            font-size: 16px !important;
             font-weight: 700 !important;
-            color: #F3F4F6 !important;
+            color: #F1F5F9 !important;
             margin-top: 24px !important;
             margin-bottom: 12px !important;
             letter-spacing: -0.01em !important;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        /* Persistent Top Info Bar */
+        /* 5. Persistent Top Info Bar */
         .top-meta-bar {
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-wrap: wrap;
             gap: 12px;
-            background-color: #1A1F2E;
-            border: 1px solid #2D3748;
-            border-radius: 8px;
-            padding: 10px 18px;
-            margin-bottom: 20px;
+            background: linear-gradient(180deg, #131B2E 0%, #0F172A 100%);
+            border: 1px solid #1E293B;
+            border-radius: 10px;
+            padding: 12px 20px;
+            margin-bottom: 22px;
             font-size: 13px;
-            color: #9CA3AF;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            color: #94A3B8;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         }
         .top-meta-item strong {
-            color: #F3F4F6;
+            color: #F8FAFC;
             font-weight: 600;
         }
         .top-meta-badge {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 3px 10px;
+            padding: 4px 12px;
             border-radius: 6px;
-            font-weight: 600;
+            font-weight: 700;
             font-size: 12px;
+            letter-spacing: 0.02em;
         }
 
-        /* Sidebar Styling */
+        /* 6. Sidebar Styling */
         [data-testid="stSidebar"] {
-            background-color: #121722 !important;
-            border-right: 1px solid #1F2937 !important;
+            background-color: #0D1322 !important;
+            border-right: 1px solid #1E293B !important;
         }
         [data-testid="stSidebar"] * {
-            color: #E5E7EB !important;
+            color: #E2E8F0 !important;
         }
         [data-testid="stSidebar"] hr {
             margin: 1.25rem 0 !important;
-            border-color: #1F2937 !important;
+            border-color: #1E293B !important;
         }
 
-        /* Sidebar Navigation Controls - Sleek Interactive Cards */
+        /* 7. Sidebar Navigation Cards & Radios (Complete bullet removal) */
         .nav-section-title {
             font-size: 11px !important;
             font-weight: 700 !important;
             text-transform: uppercase !important;
             letter-spacing: 0.08em !important;
-            color: #9CA3AF !important;
-            margin-bottom: 10px !important;
+            color: #94A3B8 !important;
+            margin-bottom: 8px !important;
         }
 
-        [data-testid="stSidebar"] div[role="radiogroup"] > label {
+        /* Hide all radio circle elements and indicators across BaseWeb and standard DOM */
+        [data-testid="stRadio"] [data-baseweb="radio"] > div:first-child,
+        [data-testid="stRadio"] [data-baseweb="radio"] > span,
+        [data-testid="stRadio"] input[type="radio"],
+        [data-testid="stRadio"] svg {
+            display: none !important;
+            visibility: hidden !important;
+            width: 0 !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        [data-testid="stRadio"] div[role="radiogroup"] {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+        }
+
+        [data-testid="stRadio"] div[role="radiogroup"] > label,
+        [data-testid="stRadio"] [data-baseweb="radio"] {
             display: flex !important;
             align-items: center !important;
-            padding: 12px 16px !important;
-            margin-bottom: 8px !important;
+            width: 100% !important;
+            padding: 12px 14px !important;
+            background-color: #162032 !important;
+            border: 1px solid #27354E !important;
+            border-left: 4px solid #475569 !important;
             border-radius: 8px !important;
-            border: 1px solid #1F2937 !important;
-            border-left: 4px solid #374151 !important;
-            font-size: 14px !important;
-            font-weight: 500 !important;
-            color: #D1D5DB !important;
-            background-color: #161C2A !important;
+            font-size: 13.5px !important;
+            font-weight: 600 !important;
+            color: #CBD5E1 !important;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
             cursor: pointer !important;
-        }
-        [data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
-            background-color: #1E273B !important;
-            color: #FFFFFF !important;
-            border-color: #3B82F660 !important;
-            border-left-color: #3B82F6 !important;
-            transform: translateX(2px);
-        }
-        [data-testid="stSidebar"] div[role="radiogroup"] > label[data-checked="true"],
-        [data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
-            background-color: #1E293B !important;
-            color: #FFFFFF !important;
-            border: 1px solid #3B82F680 !important;
-            border-left: 4px solid #3B82F6 !important;
-            font-weight: 700 !important;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+            margin: 0 !important;
         }
 
-        /* Unified Dark Card System */
+        [data-testid="stRadio"] div[role="radiogroup"] > label:hover,
+        [data-testid="stRadio"] [data-baseweb="radio"]:hover {
+            background-color: #1E2E48 !important;
+            color: #FFFFFF !important;
+            border-color: #3B82F680 !important;
+            border-left-color: #3B82F6 !important;
+            transform: translateX(3px) !important;
+        }
+
+        [data-testid="stRadio"] div[role="radiogroup"] > label[data-checked="true"],
+        [data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked),
+        [data-testid="stRadio"] [data-baseweb="radio"]:has(input:checked) {
+            background: linear-gradient(90deg, #1E3A8A 0%, #162238 100%) !important;
+            color: #FFFFFF !important;
+            border: 1px solid #3B82F6 !important;
+            border-left: 4px solid #60A5FA !important;
+            font-weight: 700 !important;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25) !important;
+        }
+
+        [data-testid="stRadio"] div[role="radiogroup"] > label p,
+        [data-testid="stRadio"] div[role="radiogroup"] > label div[data-testid="stMarkdownContainer"] p,
+        [data-testid="stRadio"] [data-baseweb="radio"] div[data-testid="stMarkdownContainer"] p {
+            font-size: 13.5px !important;
+            font-weight: 600 !important;
+            color: inherit !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        /* 8. Unified Dark Card System */
         .op-card {
-            background-color: #1A1F2E;
-            border: 1px solid #2D3748;
-            border-radius: 8px;
+            background-color: #111827;
+            border: 1px solid #1E293B;
+            border-radius: 10px;
             padding: 16px 20px;
             margin-bottom: 12px;
             transition: all 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
         }
         .op-card:hover {
-            border-color: #4A5568;
+            border-color: #3B82F660;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.35);
         }
         .op-card-label {
             font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.06em;
-            color: #9CA3AF;
+            color: #94A3B8;
             margin-bottom: 6px;
         }
         .op-card-value {
             font-size: 26px;
-            font-weight: 700;
-            color: #F9FAFB;
+            font-weight: 800;
+            color: #F8FAFC;
             line-height: 1.15;
         }
         .op-card-sub {
             font-size: 12px;
             font-weight: 400;
-            color: #9CA3AF;
+            color: #94A3B8;
             margin-top: 4px;
         }
 
@@ -362,7 +430,7 @@ def apply_custom_styles() -> None:
             border-left: 4px solid #EF4444 !important;
         }
         .card-indigo {
-            border-left: 4px solid #6366F1 !important;
+            border-left: 4px solid #818CF8 !important;
         }
         .card-emerald {
             border-left: 4px solid #10B981 !important;
@@ -371,7 +439,7 @@ def apply_custom_styles() -> None:
             border-left: 4px solid #3B82F6 !important;
         }
         .card-neutral {
-            border-left: 4px solid #4B5563 !important;
+            border-left: 4px solid #475569 !important;
         }
 
         /* Status Badges */
@@ -385,59 +453,61 @@ def apply_custom_styles() -> None:
             letter-spacing: 0.02em;
         }
         .pill-high {
-            background-color: #3B1822;
+            background-color: #45121E;
             color: #F87171;
             border: 1px solid #EF444460;
         }
         .pill-med {
-            background-color: #222547;
-            color: #818CF8;
+            background-color: #23224B;
+            color: #A5B4FC;
             border: 1px solid #6366F160;
         }
         .pill-norm {
-            background-color: #132D27;
+            background-color: #0E3024;
             color: #34D399;
             border: 1px solid #10B98160;
         }
 
         /* Buttons & Actions */
         div.stButton > button:first-child, div.stDownloadButton > button:first-child {
-            background-color: #3B82F6 !important;
+            background: linear-gradient(180deg, #2563EB 0%, #1D4ED8 100%) !important;
             color: #FFFFFF !important;
-            border-radius: 6px !important;
-            border: 1px solid #2563EB !important;
-            font-size: 14px !important;
+            border-radius: 8px !important;
+            border: 1px solid #3B82F6 !important;
+            font-size: 13.5px !important;
             font-weight: 600 !important;
             padding: 8px 18px !important;
-            transition: all 0.15s ease !important;
+            transition: all 0.2s ease !important;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25) !important;
         }
         div.stButton > button:first-child:hover, div.stDownloadButton > button:first-child:hover {
-            background-color: #2563EB !important;
-            color: #FFFFFF !important;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3) !important;
+            background: linear-gradient(180deg, #1D4ED8 0%, #1E40AF 100%) !important;
+            border-color: #60A5FA !important;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45) !important;
+            transform: translateY(-1px) !important;
         }
 
         /* Select boxes & Inputs */
         div[data-baseweb="select"] > div {
-            background-color: #1A1F2E !important;
-            border-color: #2D3748 !important;
-            border-radius: 6px !important;
-            color: #F3F4F6 !important;
+            background-color: #111827 !important;
+            border-color: #1E293B !important;
+            border-radius: 8px !important;
+            color: #F8FAFC !important;
         }
 
         /* Dataframes */
         [data-testid="stDataFrame"] {
-            border: 1px solid #2D3748 !important;
+            border: 1px solid #1E293B !important;
             border-radius: 8px !important;
-            background-color: #1A1F2E !important;
+            background-color: #111827 !important;
         }
 
         /* Expanders */
         .streamlit-expanderHeader {
-            background-color: #1A1F2E !important;
-            border: 1px solid #2D3748 !important;
+            background-color: #111827 !important;
+            border: 1px solid #1E293B !important;
             border-radius: 6px !important;
-            color: #9CA3AF !important;
+            color: #94A3B8 !important;
             font-size: 13px !important;
         }
 
@@ -445,8 +515,8 @@ def apply_custom_styles() -> None:
         .sidebar-footer {
             margin-top: 1.5rem;
             padding-top: 1rem;
-            border-top: 1px solid #1F2937;
-            color: #6B7280;
+            border-top: 1px solid #1E293B;
+            color: #64748B;
             font-size: 11px;
             line-height: 1.5;
         }
@@ -465,7 +535,7 @@ def render_top_bar(selected_origin: str) -> None:
     )
     is_replay = selected_origin != DATA_CUTOFF
     badge_html = (
-        '<span class="top-meta-badge" style="color:#34D399; border:1px solid #10B98140; background:#132D27;">● Operational</span>'
+        '<span class="top-meta-badge" style="color:#34D399; border:1px solid #10B98140; background:#0E3024;">● Operational</span>'
         if not is_replay
         else '<span class="top-meta-badge" style="color:#FBBF24; border:1px solid #F59E0B40; background:#362612;">↺ Replay Mode</span>'
     )
@@ -541,7 +611,6 @@ def render_facility_map(df_alerts: pd.DataFrame) -> None:
 
     df_map = pd.DataFrame(map_rows)
 
-    # Base scatter plot of collection centers
     color_scale = alt.Scale(
         domain=["High Shortfall", "Moderate Shortfall", "Stable Operations"],
         range=["#EF4444", "#818CF8", "#10B981"],
@@ -556,10 +625,10 @@ def render_facility_map(df_alerts: pd.DataFrame) -> None:
                 scale=alt.Scale(domain=[99.0, 119.5]),
                 axis=alt.Axis(
                     title="Longitude (°E)",
-                    gridColor="#1F2937",
-                    labelColor="#9CA3AF",
-                    titleColor="#E5E7EB",
-                    domainColor="#374151",
+                    gridColor="#1E293B",
+                    labelColor="#94A3B8",
+                    titleColor="#CBD5E1",
+                    domainColor="#334155",
                 ),
             ),
             y=alt.Y(
@@ -567,10 +636,10 @@ def render_facility_map(df_alerts: pd.DataFrame) -> None:
                 scale=alt.Scale(domain=[1.0, 7.5]),
                 axis=alt.Axis(
                     title="Latitude (°N)",
-                    gridColor="#1F2937",
-                    labelColor="#9CA3AF",
-                    titleColor="#E5E7EB",
-                    domainColor="#374151",
+                    gridColor="#1E293B",
+                    labelColor="#94A3B8",
+                    titleColor="#CBD5E1",
+                    domainColor="#334155",
                 ),
             ),
             color=alt.Color(
@@ -579,8 +648,8 @@ def render_facility_map(df_alerts: pd.DataFrame) -> None:
                 legend=alt.Legend(
                     title="Operations Status",
                     orient="top-right",
-                    labelColor="#E5E7EB",
-                    titleColor="#F9FAFB",
+                    labelColor="#E2E8F0",
+                    titleColor="#F8FAFC",
                 ),
             ),
             size=alt.Size("point_size:Q", legend=None),
@@ -603,7 +672,7 @@ def render_facility_map(df_alerts: pd.DataFrame) -> None:
             dx=10,
             fontSize=10,
             fontWeight="bold",
-            color="#E5E7EB",
+            color="#E2E8F0",
         )
         .encode(
             x=alt.X("lon:Q"),
@@ -628,10 +697,10 @@ def render_landing_page(selected_origin: str) -> None:
     """Render the executive summary overview and operational situation command landing page."""
     render_top_bar(selected_origin)
 
-    st.markdown("<h1>Blood Supply Command Center</h1>", unsafe_allow_html=True)
+    st.markdown("<h1>Executive Operations Overview</h1>", unsafe_allow_html=True)
     st.markdown(
         '<div class="page-subtitle">'
-        "National operations overview and 14-day shortfall early warning across 22 Ministry of Health collection centers."
+        "National blood supply pulse, geospatial risk tracking, and 14-day early warning across 22 Ministry of Health collection centers."
         "</div>",
         unsafe_allow_html=True,
     )
@@ -657,7 +726,7 @@ def render_landing_page(selected_origin: str) -> None:
         st.markdown(
             f"""
             <div class="op-card card-blue">
-                <div class="op-card-label">NATIONAL TODAY</div>
+                <div class="op-card-label">NATIONAL TODAY (H=1)</div>
                 <div class="op-card-value">{h1_national:,.0f}</div>
                 <div class="op-card-sub">Expected daily collections</div>
             </div>
@@ -670,7 +739,7 @@ def render_landing_page(selected_origin: str) -> None:
             <div class="op-card card-blue">
                 <div class="op-card-label">7-DAY OUTLOOK</div>
                 <div class="op-card-value">{next_7d_national:,.0f}</div>
-                <div class="op-card-sub">National cumulative total</div>
+                <div class="op-card-sub">Projected cumulative volume</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -692,20 +761,20 @@ def render_landing_page(selected_origin: str) -> None:
         st.markdown(
             f"""
             <div class="op-card card-rose">
-                <div class="op-card-label">TOTAL DEFICIT GAP</div>
+                <div class="op-card-label">NET DEFICIT GAP</div>
                 <div class="op-card-value" style="color: #F87171;">−{total_deficit_units:,.0f} <span style="font-size: 14px; font-weight: 500;">units</span></div>
-                <div class="op-card-sub">Below 3-year seasonal median</div>
+                <div class="op-card-sub">Below 28-day baseline demand</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    # 2. National Geographic Situation Map
-    st.markdown('<div class="section-title">National Geographic Facility Status</div>', unsafe_allow_html=True)
+    # 2. National Geographic Situation Map & Regional Pulse
+    st.markdown('<div class="section-title">📍 National Geographic Facility Status</div>', unsafe_allow_html=True)
     render_facility_map(df_alerts)
 
     # 3. National ABO Group Shortfall Breakdown
-    st.markdown('<div class="section-title">National Shortfall by Blood Group</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">🩸 National Shortfall by Blood Group</div>', unsafe_allow_html=True)
     abo_cols = st.columns(4)
     for i, grp in enumerate(BLOOD_GROUPS):
         grp_df = df_alerts[df_alerts["group"] == grp]
@@ -716,29 +785,60 @@ def render_landing_page(selected_origin: str) -> None:
                 f"""
                 <div class="op-card card-neutral" style="padding: 14px 18px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 17px; font-weight: 800; color: #F3F4F6;">Group {grp}</span>
-                        <span style="font-size: 12px; color: #9CA3AF;">{grp_count} sites flagged</span>
+                        <span style="font-size: 17px; font-weight: 800; color: #F1F5F9;">Group {grp}</span>
+                        <span style="font-size: 12px; color: #94A3B8;">{grp_count} sites flagged</span>
                     </div>
-                    <div style="font-size: 20px; font-weight: 700; color: #EF4444; margin-top: 6px;">
-                        −{grp_def:,.0f} <span style="font-size: 13px; font-weight: 400; color: #D1D5DB;">units short</span>
+                    <div style="font-size: 20px; font-weight: 700; color: {'#EF4444' if grp_def > 0 else '#10B981'}; margin-top: 6px;">
+                        {'−' + f'{grp_def:,.0f} units short' if grp_def > 0 else 'Balanced Supply'}
                     </div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
 
-    # 4. Command Action Cards
-    st.markdown('<div class="section-title">Operational Navigation</div>', unsafe_allow_html=True)
+    # 4. Urgent Action Priority Center
+    if high_alerts_count > 0:
+        st.markdown('<div class="section-title">🚨 Top Operational Priorities (High Shortfall)</div>', unsafe_allow_html=True)
+        top_high = df_alerts[df_alerts["severity"] == "HIGH"].head(3)
+        for _, row in top_high.iterrows():
+            fac = row["facility"]
+            grp = row["group"]
+            def_units = float(row.get("unit_deficit", 0.0))
+            def_pct = abs(float(row.get("deficit_pct", 0.0)))
+            r1 = row.get("reason_1", "Low seasonal trend")
+            action = row.get("suggested_action", f"Schedule mobile blood drive and message group {grp} donors.")
+            st.markdown(
+                f"""
+                <div class="op-card card-rose" style="margin-bottom: 10px; padding: 14px 18px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <div style="font-size: 15px; font-weight: 700; color: #F8FAFC;">
+                            {fac} &nbsp;·&nbsp; Blood Group <span style="color: #F87171;">{grp}</span>
+                        </div>
+                        <span class="status-pill pill-high">CRITICAL −{def_units:.0f} UNITS ({def_pct:.0%})</span>
+                    </div>
+                    <div style="font-size: 12.5px; color: #94A3B8; margin-bottom: 8px;">
+                        <strong>Key Factor:</strong> {r1}
+                    </div>
+                    <div style="background-color: #0C281E; border-radius: 6px; padding: 10px 14px; border: 1px solid #10B98140; font-size: 12.5px; color: #E2E8F0;">
+                        <strong style="color: #34D399;">Action:</strong> {action}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    # 5. Command Action Cards
+    st.markdown('<div class="section-title">⚡ Operational Navigation</div>', unsafe_allow_html=True)
     nav_col1, nav_col2 = st.columns(2)
 
     with nav_col1:
         st.markdown(
             f"""
-            <div class="op-card card-rose" style="min-height: 140px;">
-                <div style="font-size: 16px; font-weight: 700; color: #F9FAFB; margin-bottom: 6px;">
+            <div class="op-card card-rose" style="min-height: 130px;">
+                <div style="font-size: 16px; font-weight: 700; color: #F8FAFC; margin-bottom: 6px;">
                     ⚠️ Shortfall Alerts & Prescriptions ({total_alerts_count} Flagged)
                 </div>
-                <div style="font-size: 13px; color: #9CA3AF; line-height: 1.5; margin-bottom: 12px;">
+                <div style="font-size: 13px; color: #94A3B8; line-height: 1.5; margin-bottom: 12px;">
                     Review collection series falling below 70%–80% of typical volume and access automated operational recommendations.
                 </div>
             </div>
@@ -752,11 +852,11 @@ def render_landing_page(selected_origin: str) -> None:
     with nav_col2:
         st.markdown(
             """
-            <div class="op-card card-blue" style="min-height: 140px;">
-                <div style="font-size: 16px; font-weight: 700; color: #F9FAFB; margin-bottom: 6px;">
+            <div class="op-card card-blue" style="min-height: 130px;">
+                <div style="font-size: 16px; font-weight: 700; color: #F8FAFC; margin-bottom: 6px;">
                     📈 14-Day Collection Forecasts
                 </div>
-                <div style="font-size: 13px; color: #9CA3AF; line-height: 1.5; margin-bottom: 12px;">
+                <div style="font-size: 13px; color: #94A3B8; line-height: 1.5; margin-bottom: 12px;">
                     Inspect daily donor predictions, 80% statistical coverage intervals (p10–p90), and historical actual comparisons.
                 </div>
             </div>
@@ -849,10 +949,7 @@ def render_forecast_page(selected_origin: str) -> None:
     )
 
     # Calculate Operational Summary Metrics
-    # TODAY (Horizon 1 prediction)
     h1_val = fcst_sub[fcst_sub["horizon"] == 1]["pred_p50"].iloc[0] if len(fcst_sub) > 0 else 0.0
-
-    # NEXT 7 DAYS (Sum of horizons 1 to 7)
     next_7d_val = fcst_sub[fcst_sub["horizon"].isin(range(1, 8))]["pred_p50"].sum()
 
     # STATUS: Check if this facility x group is in alerts for this origin
@@ -934,7 +1031,6 @@ def render_forecast_page(selected_origin: str) -> None:
     # 3. Forecast Trajectory Chart
     st.markdown('<div class="section-title">Forecast Trajectory</div>', unsafe_allow_html=True)
 
-    # Horizon toggle control
     time_view = st.radio(
         "Aggregation",
         ["Daily View", "Weekly Cumulative"],
@@ -943,14 +1039,12 @@ def render_forecast_page(selected_origin: str) -> None:
         key="fcst_time_view",
     )
 
-    # Prepare chart DataFrames
     act_df = act_sub.copy()
     act_df["date"] = pd.to_datetime(act_df["date"])
 
     pred_df = fcst_sub.copy()
     pred_df["date"] = pd.to_datetime(pred_df["target_date"])
 
-    # Determine if replay mode contains subsequent ground truth
     has_subsequent_actuals = selected_origin != DATA_CUTOFF and not pred_df["target"].isna().all()
     subsequent_df = None
     if has_subsequent_actuals:
@@ -1022,21 +1116,19 @@ def render_forecast_page(selected_origin: str) -> None:
         )
         y_axis_title = "Daily Donations"
 
-    # Softened gridline styling for dark UI
     axis_config = alt.Axis(
         format="%d %b",
         labelAngle=0,
         labelFontSize=11,
         titleFontSize=12,
-        labelColor="#9CA3AF",
-        titleColor="#E5E7EB",
-        gridColor="#1F2937",
+        labelColor="#94A3B8",
+        titleColor="#E2E8F0",
+        gridColor="#1E293B",
         gridDash=[3, 3],
         gridOpacity=0.7,
-        domainColor="#374151",
+        domainColor="#334155",
     )
 
-    # Layer 1: Expected range (soft blue/cyan translucent band)
     band_chart = (
         alt.Chart(band_chart_df)
         .mark_area(
@@ -1051,9 +1143,9 @@ def render_forecast_page(selected_origin: str) -> None:
                 axis=alt.Axis(
                     labelFontSize=11,
                     titleFontSize=12,
-                    labelColor="#9CA3AF",
-                    titleColor="#E5E7EB",
-                    gridColor="#1F2937",
+                    labelColor="#94A3B8",
+                    titleColor="#E2E8F0",
+                    gridColor="#1E293B",
                     gridDash=[3, 3],
                     gridOpacity=0.7,
                 ),
@@ -1062,7 +1154,6 @@ def render_forecast_page(selected_origin: str) -> None:
         )
     )
 
-    # Layer 2: Actual donations (solid slate line with distinct points)
     line_actual = (
         alt.Chart(act_chart_df)
         .mark_line(color="#94A3B8", strokeWidth=2.5)
@@ -1084,7 +1175,6 @@ def render_forecast_page(selected_origin: str) -> None:
         )
     )
 
-    # Layer 3: Expected donations line & points (bold blue)
     line_forecast = (
         alt.Chart(pred_chart_df)
         .mark_line(color="#3B82F6", strokeWidth=3.2)
@@ -1108,12 +1198,11 @@ def render_forecast_page(selected_origin: str) -> None:
         )
     )
 
-    # Layer 4: Vertical Forecast Boundary Line
     origin_line_df = pd.DataFrame({"date": [pd.to_datetime(selected_origin)]})
     boundary_rule = (
         alt.Chart(origin_line_df)
         .mark_rule(
-            color="#4B5563",
+            color="#475569",
             strokeDash=[4, 4],
             strokeWidth=1.5,
         )
@@ -1129,7 +1218,6 @@ def render_forecast_page(selected_origin: str) -> None:
         points_forecast,
     ]
 
-    # Layer 5 (Replay): Subsequent Actual Donations Overlay
     if has_subsequent_actuals and subsequent_df is not None and time_view == "Daily View":
         line_subsequent = (
             alt.Chart(subsequent_df)
@@ -1153,7 +1241,6 @@ def render_forecast_page(selected_origin: str) -> None:
         )
         chart_layers.extend([line_subsequent, points_subsequent])
 
-    # Assemble complete chart
     combined_chart = (
         alt.layer(*chart_layers)
         .properties(height=380)
@@ -1166,11 +1253,10 @@ def render_forecast_page(selected_origin: str) -> None:
 
     st.altair_chart(combined_chart, use_container_width=True)
 
-    # Clean Operational Legend Below Chart
     leg1, leg2, leg3, leg4 = st.columns(4)
     with leg1:
         st.markdown(
-            '<div style="font-size: 13px; color: #D1D5DB;"><span style="color: #94A3B8; font-weight: bold;">― ●</span> <strong>Actual donations</strong></div>',
+            '<div style="font-size: 13px; color: #CBD5E1;"><span style="color: #94A3B8; font-weight: bold;">― ●</span> <strong>Actual donations</strong></div>',
             unsafe_allow_html=True,
         )
     with leg2:
@@ -1191,11 +1277,10 @@ def render_forecast_page(selected_origin: str) -> None:
             )
         else:
             st.markdown(
-                '<div style="font-size: 13px; color: #6B7280;">┊ <strong>Forecast starts</strong></div>',
+                '<div style="font-size: 13px; color: #64748B;">┊ <strong>Forecast starts</strong></div>',
                 unsafe_allow_html=True,
             )
 
-    # Technical details in collapsible expander
     with st.expander("ℹ About this forecast"):
         st.markdown(
             """
@@ -1275,7 +1360,6 @@ def render_alerts_page(selected_origin: str) -> None:
         unsafe_allow_html=True,
     )
 
-    # 1. Load alerts for current origin
     df_alerts = load_alerts(selected_origin)
 
     if len(df_alerts) == 0:
@@ -1356,11 +1440,11 @@ def render_alerts_page(selected_origin: str) -> None:
                 f"""
                 <div class="op-card card-neutral" style="padding: 12px 16px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 16px; font-weight: 800; color: #F3F4F6;">Group {grp}</span>
-                        <span style="font-size: 12px; color: #9CA3AF;">{grp_count} sites flagged</span>
+                        <span style="font-size: 16px; font-weight: 800; color: #F8FAFC;">Group {grp}</span>
+                        <span style="font-size: 12px; color: #94A3B8;">{grp_count} sites flagged</span>
                     </div>
                     <div style="font-size: 18px; font-weight: 700; color: #EF4444; margin-top: 4px;">
-                        −{grp_def:,.0f} <span style="font-size: 13px; font-weight: 400; color: #D1D5DB;">units</span>
+                        −{grp_def:,.0f} <span style="font-size: 13px; font-weight: 400; color: #CBD5E1;">units</span>
                     </div>
                 </div>
                 """,
@@ -1387,14 +1471,12 @@ def render_alerts_page(selected_origin: str) -> None:
             key="alert_filter_severity",
         )
 
-    # Apply both filters together
     filtered_df = df_alerts.copy()
     if group_filter != "All":
         filtered_df = filtered_df[filtered_df["group"] == group_filter]
     if priority_filter != "All":
         filtered_df = filtered_df[filtered_df["severity"] == priority_filter]
 
-    # Sort alerts by severity (HIGH then MEDIUM, then deficit)
     severity_order = {"HIGH": 0, "MEDIUM": 1, "NONE": 2}
     filtered_df["_sev_sort"] = filtered_df["severity"].map(severity_order)
     filtered_df = filtered_df.sort_values(
@@ -1475,7 +1557,7 @@ def render_alerts_page(selected_origin: str) -> None:
 
         st.markdown(
             """
-            <div style="font-size: 12px; color: #9CA3AF; margin-top: 4px; margin-bottom: 20px;">
+            <div style="font-size: 12px; color: #94A3B8; margin-top: 4px; margin-bottom: 20px;">
                 Select any row above to inspect associated statistical factors and drill down into the forecast.
             </div>
             """,
@@ -1531,30 +1613,30 @@ def render_alerts_page(selected_origin: str) -> None:
             f"""
             <div class="op-card {border_class}" style="margin-top: 8px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <div style="font-size: 18px; font-weight: 700; color: #F9FAFB;">
+                    <div style="font-size: 18px; font-weight: 700; color: #F8FAFC;">
                         {target_fac} &nbsp;·&nbsp; Blood Group <span style="color: {accent_color};">{target_grp}</span>
                     </div>
                     <div>
                         <span class="status-pill {badge_class}">{target_sev} PRIORITY</span>
                     </div>
                 </div>
-                <div style="font-size: 14px; color: #D1D5DB; line-height: 1.6; margin-bottom: 14px;">
+                <div style="font-size: 14px; color: #CBD5E1; line-height: 1.6; margin-bottom: 14px;">
                     Expected over next 7 days: <strong>{target_fcst:.0f} donations</strong><br/>
                     Typical over next 7 days: <strong>{target_typ:.0f} donations</strong><br/>
                     Projected Shortfall: <strong style="color: {accent_color};">{target_gap:.0f} units short ({target_def:.0%} below typical)</strong>
                 </div>
-                <div style="background-color: #121722; border-radius: 6px; padding: 14px 18px; border: 1px solid #2D3748; font-size: 13px; color: #E5E7EB; margin-bottom: 12px;">
-                    <div style="font-weight: 700; color: #F3F4F6; margin-bottom: 8px;">Key Associated Factors</div>
-                    <div style="margin-bottom: 4px; color: #D1D5DB;">• {r1}</div>
-                    <div style="margin-bottom: 4px; color: #D1D5DB;">• {r2}</div>
-                    <div style="margin-bottom: 4px; color: #D1D5DB;">• {r3}</div>
-                    <div style="margin-top: 8px; font-size: 11px; color: #9CA3AF; font-style: italic;">
+                <div style="background-color: #0F172A; border-radius: 6px; padding: 14px 18px; border: 1px solid #1E293B; font-size: 13px; color: #E2E8F0; margin-bottom: 12px;">
+                    <div style="font-weight: 700; color: #F1F5F9; margin-bottom: 8px;">Key Associated Factors</div>
+                    <div style="margin-bottom: 4px; color: #CBD5E1;">• {r1}</div>
+                    <div style="margin-bottom: 4px; color: #CBD5E1;">• {r2}</div>
+                    <div style="margin-bottom: 4px; color: #CBD5E1;">• {r3}</div>
+                    <div style="margin-top: 8px; font-size: 11px; color: #94A3B8; font-style: italic;">
                         Primary statistical contributors driving model expectation.
                     </div>
                 </div>
-                <div style="background-color: #13271F; border-radius: 6px; padding: 14px 18px; border: 1px solid #10B98140; font-size: 13px; color: #E5E7EB;">
+                <div style="background-color: #0C281E; border-radius: 6px; padding: 14px 18px; border: 1px solid #10B98140; font-size: 13px; color: #E2E8F0;">
                     <div style="font-weight: 700; color: #34D399; margin-bottom: 6px;">📋 Recommended Operational Action</div>
-                    <div style="color: #F3F4F6; line-height: 1.5;">{suggested_action}</div>
+                    <div style="color: #F8FAFC; line-height: 1.5;">{suggested_action}</div>
                 </div>
             </div>
             """,
@@ -1603,16 +1685,22 @@ def main() -> None:
         # SVG Brand Logo and Wordmark
         st.markdown(
             """
-            <div style="margin-bottom: 1.5rem;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" fill="#3B82F6"/>
-                        <path d="M12 11v6M9 14h6" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                    <span style="font-size: 20px; font-weight: 800; color: #F9FAFB; letter-spacing: -0.02em;">DONOR<span style="color: #3B82F6;">CAST</span></span>
-                </div>
-                <div style="color: #9CA3AF; font-size: 13px; font-weight: 400; margin-top: 4px;">
-                    Blood Donation Forecasting
+            <div style="margin-bottom: 1.6rem; padding-bottom: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%); padding: 8px; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35);">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" fill="#FFFFFF"/>
+                            <path d="M12 10.5v6M9 13.5h6" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div style="font-size: 20px; font-weight: 800; color: #F8FAFC; letter-spacing: -0.02em; line-height: 1.1;">
+                            DONOR<span style="color: #60A5FA;">CAST</span>
+                        </div>
+                        <div style="color: #94A3B8; font-size: 12px; font-weight: 500; margin-top: 2px;">
+                            Operations Forecasting
+                        </div>
+                    </div>
                 </div>
             </div>
             """,
@@ -1628,6 +1716,7 @@ def main() -> None:
             "Navigation",
             nav_options,
             key="nav_radio",
+            format_func=lambda x: NAV_LABELS.get(x, x),
             label_visibility="collapsed",
         )
         st.session_state["nav_page"] = selected_page
@@ -1651,6 +1740,21 @@ def main() -> None:
 
         chosen_origin = available_origins[origin_labels.index(chosen_label)]
         st.session_state["selected_origin"] = chosen_origin
+
+        # Sidebar Live System Capsule
+        st.markdown(
+            """
+            <div style="background-color: #111827; border: 1px solid #1E293B; border-radius: 8px; padding: 12px 14px; margin-top: 14px; font-size: 11.5px; color: #94A3B8; line-height: 1.6;">
+                <div style="font-weight: 700; color: #E2E8F0; margin-bottom: 4px; font-size: 12px; display: flex; align-items: center; gap: 6px;">
+                    <span style="color: #10B981;">●</span> SYSTEM STATUS
+                </div>
+                <div>Coverage: <strong>22 Facilities (88 Series)</strong></div>
+                <div>Horizon: <strong>14 Days Forward</strong></div>
+                <div>Granularity: <strong>Daily by ABO Group</strong></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
         # Clean single-instance operational disclaimer in sidebar footer
         st.markdown(
