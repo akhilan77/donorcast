@@ -180,12 +180,8 @@ def fit_and_forecast_single_series(
     last_observed_date = train_end
     current_res = res
 
-    all_dates = list(series.index)
-    date_to_idx = {d: i for i, d in enumerate(all_dates)}
-
     for origin in origin_dates:
         t_ts = pd.Timestamp(origin)
-        origin_dt = datetime.date.fromisoformat(origin)
 
         # If origin > last_observed_date and we have a valid model result, extend state with new observations
         if current_res is not None and origin > last_observed_date:
@@ -215,7 +211,7 @@ def fit_and_forecast_single_series(
                     forecast_vals = current_res.forecast(steps=horizon, exog=X_future).values
                     # Clip to non-negative
                     forecast_vals = np.maximum(0.0, forecast_vals)
-                except Exception:
+                except (ValueError, np.linalg.LinAlgError, RuntimeError):
                     # Fallback to mean of last 28 days
                     recent_slice = series.loc[max(series.index[0], t_ts - pd.Timedelta(days=27)) : t_ts]
                     forecast_vals = np.full(horizon, max(0.0, float(recent_slice.mean())))
@@ -334,13 +330,13 @@ def generate_sarima_comparison_markdown(
     md = [
         f"# SARIMAX (M1) Model Evaluation Report ({split.upper()} Split)",
         "",
-        f"- **Model**: `M1_sarimax` (SARIMAX with weekly seasonality $s=7$ and 4 exogenous calendar dummies)",
+        "- **Model**: `M1_sarimax` (SARIMAX with weekly seasonality $s=7$ and 4 exogenous calendar dummies)",
         f"- **Order Specification**: `SARIMAX{CHOSEN_ORDER}x{CHOSEN_SEASONAL_ORDER}`",
         f"- **Exogenous Variables**: `{', '.join(EXOG_COLS)}` (Facility's State)",
         f"- **Estimation Strategy**: Fit once on last 3 years of train (`{MASE_WINDOW_START}` to `{TRAIN_END}`), rolling state update via `extend(refit=False)` across all validation origins",
         f"- **Total Runtime (Fit + State Updating + 14D Forecast)**: **{runtime_sec:.2f} seconds** ({runtime_sec / 60:.2f} minutes)",
         f"- **Evaluation Period**: `{VAL_START}` to `{VAL_END}` (104 weekly Monday origins)",
-        f"- **Forecast Horizons**: 1 to 14 days ahead",
+        "- **Forecast Horizons**: 1 to 14 days ahead",
         "",
         "---",
         "",
@@ -534,7 +530,9 @@ def run_sarima_evaluation(
     long_df = pd.read_parquet(long_path)
 
     print("Preparing series and exogenous features for SARIMAX...")
-    series_dict, facility_exog_dict, facility_to_state, all_dates = prepare_data_and_exog(long_df)
+    series_dict, facility_exog_dict, _facility_to_state, _all_dates = prepare_data_and_exog(
+        long_df
+    )
 
     # Optional order selection grid on representative series
     print("\nRunning Order Selection Grid Search on 5 representative series...")

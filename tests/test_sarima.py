@@ -64,7 +64,7 @@ def synthetic_sarima_data():
 
 def test_prepare_data_and_exog(synthetic_sarima_data):
     long_df, calendar_df, fac_state_df = synthetic_sarima_data
-    series_dict, facility_exog_dict, facility_to_state, all_dates = prepare_data_and_exog(
+    series_dict, facility_exog_dict, _facility_to_state, all_dates = prepare_data_and_exog(
         long_df, calendar_df=calendar_df, facility_state_df=fac_state_df
     )
 

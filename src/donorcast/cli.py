@@ -37,8 +37,12 @@ def create_parser() -> argparse.ArgumentParser:
 
             res = run_sarima_evaluation(split="val", n_jobs=args.n_jobs)
             print(f"SARIMAX evaluation complete. Report written to: {res['report_file']}")
-        elif args.model == "lightgbm":
-            print("LightGBM model training will be implemented in Task 3.2.")
+        elif args.model in ("lightgbm", "lgbm"):
+            print("Training LightGBM model on validation split...")
+            from donorcast.models.lgbm import run_lgbm_evaluation
+
+            res = run_lgbm_evaluation(split="val")
+            print(f"LightGBM evaluation complete. Version saved: {res['version_dir']}")
         elif args.model == "lstm":
             print("LSTM model training will be implemented in Task 3.3.")
         else:
@@ -74,7 +78,7 @@ def create_parser() -> argparse.ArgumentParser:
                 "--model",
                 type=str,
                 default="sarima",
-                choices=["sarima", "lightgbm", "lstm"],
+                choices=["sarima", "lightgbm", "lgbm", "lstm"],
                 help="Model to train and evaluate on validation split.",
             )
             subparser.add_argument(
