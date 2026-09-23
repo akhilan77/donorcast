@@ -31,7 +31,11 @@ from donorcast.config import (
     SHORTFALL_MEDIUM_RATIO,
 )
 from donorcast.evaluate import HistoricalTypicalLookup
-from donorcast.explain import get_latest_lgbm_model_dir, reasons
+from donorcast.explain import (
+    generate_action_prescription,
+    get_latest_lgbm_model_dir,
+    reasons,
+)
 from donorcast.features import FeaturePrecomputer, build_features_for_origins
 from donorcast.models.lgbm import CATEGORICAL_COLS
 
@@ -262,6 +266,9 @@ def compute_alerts_table(
         grouped["forecast_7d"] / grouped["typical_7d"],
         np.nan,
     )
+    grouped["unit_deficit"] = np.maximum(
+        0.0, grouped["typical_7d"] - grouped["forecast_7d"]
+    ).round(1)
 
     # Actual shortfall if historical actual data exists
     has_actuals = not h7_forecasts["target"].isna().all()
@@ -301,12 +308,13 @@ def compute_alerts_table(
         ["facility", "group"], drop=False
     )
 
-    # Compute top 3 reasons using explain.py:reasons(row)
+    # Compute top 3 reasons and suggested action prescriptions
     reasons_1_list = []
     reasons_2_list = []
     reasons_3_list = []
     reasons_all_list = []
     reasons_str_list = []
+    actions_list = []
 
     for _, row in alerts_subset.iterrows():
         key = (row["facility"], row["group"])
@@ -320,17 +328,26 @@ def compute_alerts_table(
         r2 = r_top[1] if len(r_top) > 1 else ""
         r3 = r_top[2] if len(r_top) > 2 else ""
 
+        action_prescr = generate_action_prescription(
+            reasons_list=r_top,
+            group=str(row["group"]),
+            unit_deficit=float(row.get("unit_deficit", 0.0)),
+            facility=str(row["facility"]),
+        )
+
         reasons_1_list.append(r1)
         reasons_2_list.append(r2)
         reasons_3_list.append(r3)
         reasons_all_list.append(r_top)
         reasons_str_list.append(" · ".join(r_top))
+        actions_list.append(action_prescr)
 
     alerts_subset["reason_1"] = reasons_1_list
     alerts_subset["reason_2"] = reasons_2_list
     alerts_subset["reason_3"] = reasons_3_list
     alerts_subset["reasons"] = reasons_all_list
     alerts_subset["reasons_str"] = reasons_str_list
+    alerts_subset["suggested_action"] = actions_list
 
     # Sort: HIGH severity first, then MEDIUM, then most severe negative deficit
     severity_order = {"HIGH": 0, "MEDIUM": 1, "NONE": 2}
@@ -352,6 +369,7 @@ def compute_alerts_table(
         "forecast_p10_7d",
         "forecast_p90_7d",
         "typical_7d",
+        "unit_deficit",
         "deficit_pct",
         "shortfall_ratio",
         "reason_1",
@@ -359,6 +377,7 @@ def compute_alerts_table(
         "reason_3",
         "reasons",
         "reasons_str",
+        "suggested_action",
         "actual_7d",
         "actual_shortfall",
         "actual_severity",

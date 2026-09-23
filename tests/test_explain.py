@@ -158,3 +158,28 @@ def test_generate_global_shap_summary_small(tmp_path):
 
     assert Path(out["beeswarm"]).stat().st_size > 1000
     assert Path(out["bar"]).stat().st_size > 1000
+
+
+def test_generate_action_prescription():
+    """Verify operational action prescription generator output and logic."""
+    from donorcast.explain import generate_action_prescription
+
+    # Holiday reason
+    p1 = generate_action_prescription(
+        ["Hari Raya in 4 days", "school holidays", "mobile-drive share down"],
+        group="O",
+        unit_deficit=95.0,
+        facility="Hospital Melaka",
+    )
+    assert "priority recall SMS" in p1
+    assert "regular group O donors" in p1
+    assert "buffer transfer" in p1
+
+    # Student reason
+    p2 = generate_action_prescription(
+        ["fewer student donors recently", "school holidays"],
+        group="A",
+        unit_deficit=30.0,
+        facility="Hospital Pulau Pinang",
+    )
+    assert "Redirect mobile blood collection teams" in p2

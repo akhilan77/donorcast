@@ -41,3 +41,4 @@ ehthumbs.db
 # Processed intermediate data and generated figures (data/raw/ is tracked and committed)
 data/processed/*.parquet
 reports/figures/*.png
+.agents/

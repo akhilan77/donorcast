@@ -575,5 +575,76 @@ def generate_global_shap_summary(
     }
 
 
+def generate_action_prescription(
+    reasons_list: list[str],
+    group: str = "all",
+    unit_deficit: float = 0.0,
+    facility: str = "facility",
+) -> str:
+    """Translate top alert driver reasons into concrete operational action prescriptions.
+
+    Parameters
+    ----------
+    reasons_list : list[str]
+        Top plain-English statistical reason strings.
+    group : str
+        ABO blood group (e.g. 'A', 'B', 'AB', 'O', or 'all').
+    unit_deficit : float
+        Forecasted units short relative to typical demand.
+    facility : str
+        Name of the collection facility.
+
+    Returns
+    -------
+    str
+        Specific, actionable operational recommendation for blood drive coordinators.
+    """
+    reasons_text = " ".join(reasons_list).lower()
+    group_str = f"group {group}" if group and group.lower() != "all" else "all blood groups"
+
+    is_festival_holiday = any(
+        k in reasons_text
+        for k in [
+            "hari raya",
+            "ramadan",
+            "chinese new year",
+            "cny",
+            "deepavali",
+            "aidiladha",
+            "public holiday",
+            "election",
+            "festival",
+            "bridge day",
+        ]
+    )
+    is_mobile_low = "mobile" in reasons_text
+    is_student_low = "student" in reasons_text or "school" in reasons_text
+    is_regular_low = "regular" in reasons_text
+
+    actions = []
+    if is_festival_holiday:
+        actions.append(f"Broadcast priority recall SMS to regular {group_str} donors 3–5 days prior to holiday closures")
+        actions.append("extend donor suite evening operating hours")
+    elif is_student_low:
+        actions.append("Redirect mobile blood collection teams to corporate offices, shopping malls, and community centers")
+    elif is_mobile_low:
+        actions.append("Schedule an additional high-capacity mobile collection drive at commercial or civic hubs")
+    elif is_regular_low:
+        actions.append(f"Activate targeted callouts for lapsed and regular {group_str} donors (last donation >90 days)")
+    else:
+        actions.append(f"Schedule an extra mobile drive and message regular {group_str} donors this week")
+
+    if unit_deficit >= 80:
+        actions.append("alert regional logistics hub for buffer transfer support")
+
+    action_str = "; ".join(actions)
+    if action_str:
+        action_str = action_str[0].upper() + action_str[1:]
+        if not action_str.endswith("."):
+            action_str += "."
+        return action_str
+    return f"Schedule an extra mobile drive and message regular {group_str} donors this week."
+
+
 if __name__ == "__main__":
     generate_global_shap_summary()

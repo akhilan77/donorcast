@@ -295,6 +295,52 @@ def build_calendar_dataframe(
     return calendar_df
 
 
+def compute_bridge_days(calendar_df: pd.DataFrame) -> pd.Series:
+    """Identify bridge workdays (non-holiday workdays adjacent to both a weekend and public holiday).
+
+    A bridge day typically occurs on a Monday when Tuesday is a holiday, or on a Friday
+    when Thursday is a holiday, leading to high interstate holiday travel.
+    """
+    df = calendar_df.copy()
+    if not isinstance(df.index, pd.DatetimeIndex) and "date" in df.columns:
+        df["dt"] = pd.to_datetime(df["date"])
+        df = df.sort_values(["state", "dt"])
+
+    # Non-weekend and non-holiday day
+    is_workday = (df["is_weekend"] == 0) & (df["is_public_holiday"] == 0)
+
+    # Check previous and next days per state
+    prev_is_off = (df.groupby("state")["is_weekend"].shift(1) == 1) | (
+        df.groupby("state")["is_public_holiday"].shift(1) == 1
+    )
+    next_is_off = (df.groupby("state")["is_weekend"].shift(-1) == 1) | (
+        df.groupby("state")["is_public_holiday"].shift(-1) == 1
+    )
+
+    is_bridge = is_workday & prev_is_off & next_is_off
+    return is_bridge.astype(int)
+
+
+def compute_min_days_to_festival(calendar_df: pd.DataFrame) -> pd.Series:
+    """Compute the minimum distance in days to the nearest upcoming major Malaysian festival.
+
+    Considers Hari Raya Aidilfitri, Chinese New Year, Deepavali, and Hari Raya Aidiladha.
+    """
+    fest_cols = [
+        col
+        for col in [
+            "days_to_hari_raya",
+            "days_to_cny",
+            "days_to_deepavali",
+            "days_to_aidiladha",
+        ]
+        if col in calendar_df.columns
+    ]
+    if not fest_cols:
+        return pd.Series(30, index=calendar_df.index)
+    return calendar_df[fest_cols].min(axis=1).astype(int)
+
+
 def save_calendar_parquet(
     output_path: Path | str = CALENDAR_PROCESSED_FILE,
 ) -> pd.DataFrame:

@@ -215,3 +215,17 @@ def test_mco_elections_school_holidays(calendar_df):
         (calendar_df["state"] == "Johor") & (calendar_df["date"] == "2024-05-27")
     ].iloc[0]
     assert school_row["is_school_holiday"] == 1
+
+
+def test_calendar_proximity_helpers(calendar_df):
+    """Test bridge days and festival proximity computations."""
+    from donorcast.calendar import compute_bridge_days, compute_min_days_to_festival
+
+    bridge_series = compute_bridge_days(calendar_df)
+    assert len(bridge_series) == len(calendar_df)
+    assert set(bridge_series.unique()).issubset({0, 1})
+
+    min_fest = compute_min_days_to_festival(calendar_df)
+    assert len(min_fest) == len(calendar_df)
+    assert (min_fest >= 0).all()
+    assert (min_fest <= 30).all()
