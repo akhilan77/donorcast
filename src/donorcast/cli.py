@@ -44,7 +44,11 @@ def create_parser() -> argparse.ArgumentParser:
             res = run_lgbm_evaluation(split="val")
             print(f"LightGBM evaluation complete. Version saved: {res['version_dir']}")
         elif args.model == "lstm":
-            print("LSTM model training will be implemented in Task 3.3.")
+            print("Training LSTM model on validation split...")
+            from donorcast.models.lstm import run_lstm_evaluation
+
+            res = run_lstm_evaluation(split="val")
+            print(f"LSTM evaluation complete. Version saved: {res['version_dir']}")
         else:
             print(f"Unknown model: {args.model}")
 
