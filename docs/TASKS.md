@@ -20,4 +20,6 @@ Tracking progress across project roadmap defined in `docs/DONORCAST_PLAN.md`.
 | **Task 4.2** | Explainability & SHAP reason translation | **COMPLETED** | `src/donorcast/explain.py`, `feature_labels.yaml`, SHAP figures in `reports/figures/` |
 | **Task 4.3** | 14-day forecasts & shortfall alert system | **COMPLETED** | `src/donorcast/shortfall.py`, `outputs/alerts_*.parquet`, `outputs/forecasts_*.parquet` |
 | **Task 4.4** | End-to-end pipeline CLI & Windows guide | **COMPLETED** | `donorcast all`, progress logging & timings, `README.md`, fresh clone validation |
-| **Task 4.5** | Interactive Streamlit dashboard | **UPCOMING** | Next milestone (Streamlit app with 4 pages) |
+| **Task 4.5** | Interactive Streamlit dashboard | **COMPLETED** | `app/streamlit_app.py`, Forecast & Alerts pages, SaaS visual design, tests |
+| **Task 4.6** | Dashboard: Model comparison page | **UPCOMING** | Next milestone |
+
