@@ -242,7 +242,8 @@ def test_apptest_interactive_flow():
     assert len(at.exception) == 0
     assert at.sidebar.selectbox(key="sb_origin").value == "2025-03-24 (Hari Raya 2025 Replay)"
 
-    # Check that table on replay origin includes Actual Realized column
+    # Check that table on replay origin includes Actual column
     df_displayed = at.dataframe[0].value
-    assert "Actual Realized" in df_displayed.columns
+    assert "Actual" in df_displayed.columns
+    assert list(df_displayed.columns) == ["Date", "p10", "p50", "p90", "Actual"]
 

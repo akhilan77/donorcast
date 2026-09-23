@@ -26,7 +26,7 @@ REPORTS_DIR = PROJECT_ROOT / "reports"
 DATA_CUTOFF = "2026-09-22"
 
 REPLAY_LABELS: dict[str, str] = {
-    "2026-09-22": "Latest Cutoff (2026-09-22)",
+    "2026-09-22": "Latest (2026-09-22)",
     "2025-03-24": "2025-03-24 (Hari Raya 2025 Replay)",
     "2025-01-27": "2025-01-27 (Chinese New Year 2025 Replay)",
     "2025-10-13": "2025-10-13 (Deepavali 2025 Replay)",
@@ -382,17 +382,16 @@ def render_forecast_page(selected_origin: str) -> None:
     kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
 
     is_replay = selected_origin != DATA_CUTOFF
-    origin_display_label = (
-        f"{selected_origin} (Replay)" if is_replay else f"{selected_origin} (Latest)"
-    )
+    origin_display_date = pd.to_datetime(selected_origin).strftime("%d %b %Y")
+    if is_replay:
+        origin_display_date += " (Replay)"
 
     with kpi_col1:
         st.markdown(
             f"""
             <div class="dc-card card-neutral">
-                <div class="dc-card-label">Selected Facility</div>
+                <div class="dc-card-label">FACILITY</div>
                 <div class="dc-card-value" style="font-size: 1.15rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{selected_facility}">{selected_facility}</div>
-                <div class="dc-card-sub">MoH Collection Site</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -402,9 +401,8 @@ def render_forecast_page(selected_origin: str) -> None:
         st.markdown(
             f"""
             <div class="dc-card card-high">
-                <div class="dc-card-label">Blood Group</div>
-                <div class="dc-card-value" style="color: #ea4b71;">Group {selected_group}</div>
-                <div class="dc-card-sub">ABO Blood Typing</div>
+                <div class="dc-card-label">BLOOD GROUP</div>
+                <div class="dc-card-value" style="color: #ea4b71;">{selected_group}</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -414,9 +412,8 @@ def render_forecast_page(selected_origin: str) -> None:
         st.markdown(
             f"""
             <div class="dc-card card-medium">
-                <div class="dc-card-label">Forecast Origin</div>
-                <div class="dc-card-value" style="font-size: 1.35rem; color: #6b73ff;">{origin_display_label}</div>
-                <div class="dc-card-sub">Forecast generated as of T</div>
+                <div class="dc-card-label">FORECAST ORIGIN</div>
+                <div class="dc-card-value" style="font-size: 1.25rem; color: #6b73ff;">{origin_display_date}</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -426,9 +423,8 @@ def render_forecast_page(selected_origin: str) -> None:
         st.markdown(
             """
             <div class="dc-card card-neutral">
-                <div class="dc-card-label">Forecast Horizon</div>
-                <div class="dc-card-value">14 Days</div>
-                <div class="dc-card-sub">Multi-horizon point + interval</div>
+                <div class="dc-card-label">HORIZON</div>
+                <div class="dc-card-value">14 days</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -594,9 +590,9 @@ def render_forecast_page(selected_origin: str) -> None:
     boundary_text = (
         alt.Chart(origin_line_df)
         .mark_text(
-            text="Forecast Boundary (Origin T)",
-            align="right",
-            dx=-8,
+            text="Forecast starts",
+            align="left",
+            dx=6,
             dy=-140,
             fontSize=11,
             color="#4a5568",
@@ -668,23 +664,23 @@ def render_forecast_page(selected_origin: str) -> None:
         )
     with leg_col2:
         st.markdown(
-            '<div style="font-size: 0.82rem; color: #ea4b71;"><span style="color: #ea4b71; font-size: 1.1rem;">― ●</span> <strong>Forecast (p50)</strong> (14 Days)</div>',
+            '<div style="font-size: 0.82rem; color: #ea4b71;"><span style="color: #ea4b71; font-size: 1.1rem;">― ●</span> <strong>Forecast p50</strong> (14 Days)</div>',
             unsafe_allow_html=True,
         )
     with leg_col3:
         st.markdown(
-            '<div style="font-size: 0.82rem; color: #ea4b71;"><span style="display:inline-block; width:14px; height:10px; background:#ea4b71; opacity:0.3; border-radius:2px; margin-right:4px;"></span><strong>p10–p90 Band</strong> (80% Interval)</div>',
+            '<div style="font-size: 0.82rem; color: #ea4b71;"><span style="display:inline-block; width:14px; height:10px; background:#ea4b71; opacity:0.3; border-radius:2px; margin-right:4px;"></span><strong>Prediction interval</strong> (p10–p90)</div>',
             unsafe_allow_html=True,
         )
     with leg_col4:
         if has_subsequent_actuals:
             st.markdown(
-                '<div style="font-size: 0.82rem; color: #00a887;"><span style="color: #00d4aa; font-size: 1.1rem;">┄ ■</span> <strong>Subsequent Actual</strong> (Replay)</div>',
+                '<div style="font-size: 0.82rem; color: #00a887;"><span style="color: #00d4aa; font-size: 1.1rem;">┄ ■</span> <strong>Actual</strong> (Realized)</div>',
                 unsafe_allow_html=True,
             )
         else:
             st.markdown(
-                '<div style="font-size: 0.82rem; color: #718096;">┊ <strong>Origin Boundary</strong> (T)</div>',
+                '<div style="font-size: 0.82rem; color: #718096;">┊ <strong>Forecast starts</strong></div>',
                 unsafe_allow_html=True,
             )
 
@@ -698,21 +694,19 @@ def render_forecast_page(selected_origin: str) -> None:
     )
 
     # 5. Compact Forecast Table Below Chart
-    st.markdown('<div class="section-header">14-Day Daily Forecast Values</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">14-Day Forecast</div>', unsafe_allow_html=True)
 
     table_data = []
     for _, row in fcst_sub.iterrows():
         entry = {
-            "Horizon": f"Day +{int(row['horizon'])}",
             "Date": str(row["target_date"]),
-            "Day of Week": pd.to_datetime(row["target_date"]).strftime("%A"),
-            "p10 (Lower)": f"{row['pred_p10']:.1f}",
-            "p50 (Median)": f"{row['pred_p50']:.1f}",
-            "p90 (Upper)": f"{row['pred_p90']:.1f}",
+            "p10": f"{row['pred_p10']:.1f}",
+            "p50": f"{row['pred_p50']:.1f}",
+            "p90": f"{row['pred_p90']:.1f}",
         }
         if has_subsequent_actuals:
             act_val = row["target"]
-            entry["Actual Realized"] = f"{act_val:.0f}" if pd.notna(act_val) else "—"
+            entry["Actual"] = f"{act_val:.0f}" if pd.notna(act_val) else "—"
         table_data.append(entry)
 
     df_table = pd.DataFrame(table_data)
@@ -757,9 +751,8 @@ def render_alerts_page(selected_origin: str) -> None:
         st.markdown(
             f"""
             <div class="dc-card card-neutral">
-                <div class="dc-card-label">Total Shortfall Alerts</div>
+                <div class="dc-card-label">TOTAL ALERTS</div>
                 <div class="dc-card-value">{total_alerts}</div>
-                <div class="dc-card-sub">Flagged 7-day collection series</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -769,9 +762,8 @@ def render_alerts_page(selected_origin: str) -> None:
         st.markdown(
             f"""
             <div class="dc-card card-high">
-                <div class="dc-card-label">High Severity Alerts</div>
+                <div class="dc-card-label">HIGH</div>
                 <div class="dc-card-value" style="color: #ea4b71;">{high_alerts}</div>
-                <div class="dc-card-sub">Forecast &lt; 70% of 3-yr typical volume</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -781,9 +773,8 @@ def render_alerts_page(selected_origin: str) -> None:
         st.markdown(
             f"""
             <div class="dc-card card-medium">
-                <div class="dc-card-label">Medium Severity Alerts</div>
+                <div class="dc-card-label">MEDIUM</div>
                 <div class="dc-card-value" style="color: #6b73ff;">{med_alerts}</div>
-                <div class="dc-card-sub">Forecast 70%–80% of 3-yr typical volume</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -825,7 +816,7 @@ def render_alerts_page(selected_origin: str) -> None:
 
     # 4. Alert Table Display
     st.markdown(
-        f'<div class="section-header">Flagged Shortfalls ({len(filtered_df)} Series Matching Filters)</div>',
+        f'<div class="section-header">Shortfall Alerts ({len(filtered_df)} Series Matching Filters)</div>',
         unsafe_allow_html=True,
     )
 
@@ -833,15 +824,19 @@ def render_alerts_page(selected_origin: str) -> None:
         st.info("No shortfall alerts match the current filter selection.")
     else:
         # Prepare display dataframe
+        reasons_col = [
+            f"• {r['reason_1']}  • {r['reason_2']}  • {r['reason_3']}"
+            for _, r in filtered_df.iterrows()
+        ]
         display_df = pd.DataFrame(
             {
                 "Facility": filtered_df["facility"],
-                "Blood Group": filtered_df["group"],
-                "Severity": filtered_df["severity"],
-                "Forecast 7-day": filtered_df["forecast_7d"].map(lambda x: f"{x:.1f}"),
+                "Group": filtered_df["group"],
+                "Forecast 7-day total": filtered_df["forecast_7d"].map(lambda x: f"{x:.1f}"),
                 "Typical 7-day": filtered_df["typical_7d"].map(lambda x: f"{x:.1f}"),
-                "% Below Typical": filtered_df["deficit_pct"].map(lambda x: f"{x:.1%}"),
-                "Top 3 Reasons": filtered_df["reasons_str"],
+                "% below typical": filtered_df["deficit_pct"].map(lambda x: f"{abs(x):.1%}"),
+                "Severity": filtered_df["severity"],
+                "Top 3 reasons": reasons_col,
             }
         )
 
@@ -858,7 +853,7 @@ def render_alerts_page(selected_origin: str) -> None:
         st.markdown(
             """
             <div style="font-size: 0.78rem; color: #a0aec0; margin-top: 6px; margin-bottom: 20px;">
-                <em>Interpretability Note: Top 3 reasons are derived from TreeSHAP feature contributions for the h=1 forecast. They indicate observational statistical associations and should not be construed as clinical or causal mechanisms.</em>
+                <em>Interpretability Note: Top 3 reasons describe top contributing factors derived from TreeSHAP feature contributions for the h=1 forecast. They indicate observational statistical associations and should not be construed as clinical or causal mechanisms.</em>
             </div>
             """,
             unsafe_allow_html=True,
@@ -917,13 +912,13 @@ def render_alerts_page(selected_origin: str) -> None:
                     </div>
                 </div>
                 <div style="color: #4a5568; font-size: 0.92rem; margin-bottom: 10px;">
-                    Forecast 7-day: <strong>{target_fcst:.1f} donations</strong> vs typical <strong>{target_typ:.1f}</strong> (<strong style="color: #ea4b71;">{target_def:.1%}</strong>)
+                    Forecast 7-day total: <strong>{target_fcst:.1f} donations</strong> vs typical <strong>{target_typ:.1f}</strong> (<strong style="color: #ea4b71;">{abs(target_def):.1%} below typical</strong>)
                 </div>
                 <div style="background-color: #f8fafc; border-radius: 6px; padding: 10px 14px; border: 1px solid #edf2f7; font-size: 0.85rem; color: #4a5568;">
-                    <div style="font-weight: 600; color: #718096; margin-bottom: 4px; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em;">Key Forecast Drivers (SHAP)</div>
-                    <div>1. {r1}</div>
-                    <div>2. {r2}</div>
-                    <div>3. {r3}</div>
+                    <div style="font-weight: 600; color: #718096; margin-bottom: 6px; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em;">Top Contributing Factors</div>
+                    <div>• {r1}</div>
+                    <div>• {r2}</div>
+                    <div>• {r3}</div>
                 </div>
             </div>
             """,
