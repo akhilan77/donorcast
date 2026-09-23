@@ -2,7 +2,7 @@
 
 - **Model**: `M0b_weekday_ma4`
 - **Split**: `val`
-- **Evaluated at**: `2026-09-23T06:38:50.712220+00:00`
+- **Evaluated at**: `2026-09-23T08:26:41.940047+00:00`
 - **Total Rows Evaluated**: 127,688
 
 ---

@@ -30,6 +30,20 @@ def create_parser() -> argparse.ArgumentParser:
         res = run_baselines_evaluation(split="val")
         print(f"Baselines evaluation complete. Report written to: {res['summary_file']}")
 
+    def handle_train(args):
+        if args.model == "sarima":
+            print("Training SARIMAX model on validation split...")
+            from donorcast.models.sarima import run_sarima_evaluation
+
+            res = run_sarima_evaluation(split="val", n_jobs=args.n_jobs)
+            print(f"SARIMAX evaluation complete. Report written to: {res['report_file']}")
+        elif args.model == "lightgbm":
+            print("LightGBM model training will be implemented in Task 3.2.")
+        elif args.model == "lstm":
+            print("LSTM model training will be implemented in Task 3.3.")
+        else:
+            print(f"Unknown model: {args.model}")
+
     def handle_final(args):
         print("Running final evaluation on test set...")
         from donorcast.evaluate import FINAL_RUN_FILE
@@ -47,7 +61,7 @@ def create_parser() -> argparse.ArgumentParser:
         ("clean", "Clean raw data and produce processed long parquet format.", handle_clean),
         ("features", "Generate time series and calendar features.", handle_features),
         ("baselines", "Run baseline models (M0, M0b) on validation data.", handle_baselines),
-        ("train", "Train models (SARIMA, LightGBM, LSTM).", None),
+        ("train", "Train models (SARIMA, LightGBM, LSTM).", handle_train),
         ("final", "Run final evaluation on test set.", handle_final),
         ("alerts", "Generate shortfall alerts table.", None),
         ("all", "Run the entire end-to-end pipeline.", None),
@@ -55,7 +69,21 @@ def create_parser() -> argparse.ArgumentParser:
 
     for cmd, help_text, handler in subcommands:
         subparser = subparsers.add_parser(cmd, help=help_text)
-        if cmd == "final":
+        if cmd == "train":
+            subparser.add_argument(
+                "--model",
+                type=str,
+                default="sarima",
+                choices=["sarima", "lightgbm", "lstm"],
+                help="Model to train and evaluate on validation split.",
+            )
+            subparser.add_argument(
+                "--n-jobs",
+                type=int,
+                default=-1,
+                help="Number of CPU cores for parallelization (-1 = all cores).",
+            )
+        elif cmd == "final":
             subparser.add_argument(
                 "--force",
                 action="store_true",
