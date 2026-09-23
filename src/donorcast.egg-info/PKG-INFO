@@ -17,6 +17,10 @@ Requires-Dist: shap>=0.45.0
 Requires-Dist: streamlit>=1.33.0
 Requires-Dist: pytest>=8.0.0
 Requires-Dist: ruff>=0.3.0
+Requires-Dist: matplotlib>=3.11.2
+Requires-Dist: seaborn>=0.13.2
+Requires-Dist: jupyter>=1.1.1
+Requires-Dist: ipykernel>=7.3.0
 
 # DonorCast
 
