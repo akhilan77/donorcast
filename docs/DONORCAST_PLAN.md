@@ -105,14 +105,15 @@ Not used for model training. Used for: the national-total reconciliation check, 
 | M2 | **LightGBM**, one global model with a Tweedie objective | Expected best: handles many series, calendar effects, zeros, and interactions | One model across all facilities and groups; direct multi-horizon |
 | M3 | **LSTM** (PyTorch), global, same features | The deep learning comparison | Expected to lose on tabular data of this size; explaining *why* is part of the analysis |
 
-**Selection rule.** The winner is the model with the lowest WAPE on the validation period, across horizons 1–14, that also beats M0b. Ties are broken by shortfall-flag recall and then by simplicity. The test period is used **once**, at the end.
+**Selection rule.** The winner is the model with the lowest **WAPE_7D** on the validation period, across 7-day cumulative windows from weekly origins, that also beats M0b. Daily WAPE across horizons 1–14 is secondary. Ties are broken by shortfall-flag recall and then by simplicity. The test period is used **once**, at the end.
 
 **Metrics:**
-- **WAPE** (weighted absolute percentage error) as the headline metric.
-- **MASE** (error relative to the seasonal-naive baseline). It's scale-free and works with zero days, unlike MAPE, which breaks on zeros. Explain this choice in the report.
+- **WAPE_7D** (weighted absolute percentage error on 7-day cumulative forecast totals) as the primary selection metric.
+- **WAPE** (daily weighted absolute percentage error across horizons 1–14) as the secondary regression metric.
+- **MASE** (error relative to the seasonal-naive-7 baseline, scaled over 2020–2022). It's scale-free and works with zero days, unlike MAPE, which breaks on zeros. Explain this choice in the report.
 - **Pinball loss** for p10/p90 prediction intervals (LightGBM quantile models).
-- **Shortfall flag:** precision, recall, and lead time.
-- Everything is also broken down by blood group, by facility size, and around holidays.
+- **Shortfall flag:** precision, recall, F1, prevalence, and lead time.
+- Everything is also broken down by blood group, by facility size tier, and around holidays.
 
 **Splits (time-ordered, never random):**
 

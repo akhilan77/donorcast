@@ -65,31 +65,37 @@ def test_split_filtering():
 
 
 def test_regression_metrics_wape_mase_pinball():
-    """Verify manual calculation matches compute_regression_metrics."""
+    """Verify manual calculation matches compute_regression_metrics including wape_7d."""
     df = pd.DataFrame(
         {
-            "facility": ["PDN", "PDN", "Hospital Penang", "Hospital Penang"],
-            "group": ["O", "O", "A", "A"],
-            "target": [100.0, 150.0, 20.0, 30.0],
-            "prediction": [110.0, 140.0, 25.0, 20.0],
-            "pred_p10": [90.0, 130.0, 15.0, 18.0],
-            "pred_p90": [120.0, 160.0, 28.0, 35.0],
+            "facility": ["PDN"] * 7 + ["Hospital Penang"] * 7,
+            "group": ["O"] * 7 + ["A"] * 7,
+            "origin_date": ["2023-01-02"] * 7 + ["2023-01-02"] * 7,
+            "horizon": list(range(1, 8)) + list(range(1, 8)),
+            "target": [10.0] * 7 + [20.0] * 7,  # sums: 70 and 140 -> total = 210
+            "prediction": [12.0] * 7
+            + [18.0]
+            * 7,  # pred sums: 84 and 126 -> total abs error 7d = |70-84| + |140-126| = 14 + 14 = 28
+            "pred_p10": [8.0] * 14,
+            "pred_p90": [25.0] * 14,
         }
     )
 
-    # Actual sum = 300, Abs error sum = |10| + |-10| + |5| + |-10| = 35 -> WAPE = 35 / 300 = 0.116666...
-    expected_wape = 35.0 / 300.0
+    # Daily actual sum = 210, daily abs error sum = 14 * 2 = 28 -> WAPE = 28 / 210
+    expected_wape = 28.0 / 210.0
+    expected_wape_7d = 28.0 / 210.0
 
     mase_scales = {
-        ("PDN", "O"): 10.0,
-        ("Hospital Penang", "A"): 5.0,
+        ("PDN", "O"): 2.0,
+        ("Hospital Penang", "A"): 2.0,
     }
-    # Scaled errors: 10/10=1.0, 10/10=1.0, 5/5=1.0, 10/5=2.0 -> mean = 5.0 / 4 = 1.25
-    expected_mase = 1.25
+    # Scaled errors: 2/2 = 1.0 for all rows -> mean = 1.0
+    expected_mase = 1.0
 
     metrics = compute_regression_metrics(df, mase_scales)
 
     assert pytest.approx(metrics["wape"], 1e-5) == expected_wape
+    assert pytest.approx(metrics["wape_7d"], 1e-5) == expected_wape_7d
     assert pytest.approx(metrics["mase"], 1e-5) == expected_mase
     assert "pinball_10" in metrics
     assert "pinball_90" in metrics
@@ -98,8 +104,8 @@ def test_regression_metrics_wape_mase_pinball():
 
 
 def test_facility_tiers_and_mase_scales():
-    """Verify facility tiers partitioning into top 5, middle 10, bottom 7 on synthetic long data."""
-    dates = pd.date_range("2020-01-01", "2020-01-31", freq="D").strftime("%Y-%m-%d")
+    """Verify facility tiers partitioning and MASE scales on synthetic long data with 3-year window."""
+    dates = pd.date_range("2020-01-01", "2022-12-31", freq="D").strftime("%Y-%m-%d")
     facilities = [f"Hospital_{i:02d}" for i in range(1, 23)]  # 22 facilities
 
     rows = []
@@ -112,7 +118,7 @@ def test_facility_tiers_and_mase_scales():
 
     sample_long = pd.DataFrame(rows)
 
-    tiers = compute_facility_tiers(sample_long, train_end="2020-01-31")
+    tiers = compute_facility_tiers(sample_long, train_end="2022-12-31")
     assert len(tiers) == 22
 
     top_5_count = sum(1 for v in tiers.values() if v == "top_5")
@@ -125,12 +131,12 @@ def test_facility_tiers_and_mase_scales():
     assert tiers["Hospital_01"] == "top_5"
     assert tiers["Hospital_22"] == "bottom_7"
 
-    scales = compute_mase_scales(sample_long, train_end="2020-01-31")
+    scales = compute_mase_scales(sample_long, window_start="2020-01-01", window_end="2022-12-31")
     assert len(scales) == 22 * 4
 
 
 def test_shortfall_metrics_logic():
-    """Verify shortfall flag computation and classification precision, recall, F1."""
+    """Verify shortfall flag computation, prevalence, and tier breakdowns."""
     # Build historical data for 2017, 2018, 2019 week 10
     hist_dates = ["2017-03-06", "2018-03-05", "2019-03-04"]  # Mondays around week 10
     rows = []
@@ -177,11 +183,13 @@ def test_shortfall_metrics_logic():
         )
 
     preds_df = pd.DataFrame(pred_rows)
+    tiers = {"PDN": "top_5"}
     metrics = compute_shortfall_metrics(
         predictions_df=preds_df,
         long_df=long_df,
         shortfall_ratio=0.8,
         typical_years=3,
+        facility_tiers=tiers,
         typical_lookup=lookup,
     )
 
@@ -189,9 +197,12 @@ def test_shortfall_metrics_logic():
     assert metrics["fp"] == 0
     assert metrics["fn"] == 0
     assert metrics["tn"] == 1
+    assert metrics["prevalence"] == 0.5
     assert metrics["precision"] == 1.0
     assert metrics["recall"] == 1.0
     assert metrics["f1"] == 1.0
+    assert "by_tier" in metrics
+    assert metrics["by_tier"]["top_5"]["prevalence"] == 0.5
 
 
 def test_full_evaluate_workflow(tmp_path):
@@ -226,16 +237,21 @@ def test_full_evaluate_workflow(tmp_path):
     )
 
     assert "overall" in res
+    assert "wape_7d" in res["overall"]
     assert "by_horizon" in res
     assert "by_group" in res
     assert "by_tier" in res
     assert "by_holiday" in res
     assert "shortfall" in res
+    assert "prevalence" in res["shortfall"]
+    assert "by_tier" in res["shortfall"]
 
     report_path = tmp_path / "results_test_baseline_val.md"
     assert report_path.exists()
     content = report_path.read_text(encoding="utf-8")
     assert "# Evaluation Report: test_baseline (VAL Split)" in content
+    assert "WAPE_7D" in content
     assert "WAPE" in content
     assert "MASE" in content
     assert "Shortfall Classification Metrics" in content
+    assert "Prevalence" in content

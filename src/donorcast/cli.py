@@ -23,6 +23,13 @@ def create_parser() -> argparse.ArgumentParser:
         saved_files = generate_all_feature_datasets()
         print(f"Feature generation completed. {len(saved_files)} files saved.")
 
+    def handle_baselines(args):
+        print("Running baseline models (M0, M0b) on validation split...")
+        from donorcast.models.baselines import run_baselines_evaluation
+
+        res = run_baselines_evaluation(split="val")
+        print(f"Baselines evaluation complete. Report written to: {res['summary_file']}")
+
     def handle_final(args):
         print("Running final evaluation on test set...")
         from donorcast.evaluate import FINAL_RUN_FILE
@@ -39,7 +46,7 @@ def create_parser() -> argparse.ArgumentParser:
     subcommands = [
         ("clean", "Clean raw data and produce processed long parquet format.", handle_clean),
         ("features", "Generate time series and calendar features.", handle_features),
-        ("baselines", "Run baseline models (M0, M0b) on validation data.", None),
+        ("baselines", "Run baseline models (M0, M0b) on validation data.", handle_baselines),
         ("train", "Train models (SARIMA, LightGBM, LSTM).", None),
         ("final", "Run final evaluation on test set.", handle_final),
         ("alerts", "Generate shortfall alerts table.", None),

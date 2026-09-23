@@ -25,6 +25,8 @@ from donorcast.config import (
     DATA_PROCESSED_DIR,
     FACILITY_STATE_FILE,
     FINAL_RUN_FILE,
+    MASE_WINDOW_END,
+    MASE_WINDOW_START,
     REPORTS_DIR,
     SHORTFALL_RATIO,
     TEST_END,
@@ -68,18 +70,21 @@ def filter_split(df: pd.DataFrame, split: str) -> pd.DataFrame:
 
 
 def compute_mase_scales(
-    train_long_df: pd.DataFrame, train_end: str = TRAIN_END
+    train_long_df: pd.DataFrame,
+    window_start: str = MASE_WINDOW_START,
+    window_end: str = MASE_WINDOW_END,
 ) -> dict[tuple[str, str], float]:
-    """Compute in-sample Seasonal Naive 7 MASE denominator on training data per (facility, group).
+    """Compute in-sample Seasonal Naive 7 MASE denominator per (facility, group).
 
+    Computed over the specified window (default: last 3 years before TRAIN_END, 2020-01-01 to 2022-12-31).
     Formula: (1 / (N - 7)) * sum_{t=8}^N | y_t - y_{t-7} |
     """
-    df_train = train_long_df[train_long_df["date"] <= train_end].sort_values(
-        ["facility", "group", "date"]
-    )
+    df_window = train_long_df[
+        (train_long_df["date"] >= window_start) & (train_long_df["date"] <= window_end)
+    ].sort_values(["facility", "group", "date"])
     scales: dict[tuple[str, str], float] = {}
 
-    for (fac, grp), group_df in df_train.groupby(["facility", "group"], observed=False):
+    for (fac, grp), group_df in df_window.groupby(["facility", "group"], observed=False):
         y = group_df["donations"].values.astype(np.float64)
         if len(y) > 7:
             diffs = np.abs(y[7:] - y[:-7])
@@ -121,13 +126,39 @@ def compute_facility_tiers(
     return tiers
 
 
+def compute_wape_7d(df: pd.DataFrame) -> float:
+    """Compute WAPE_7D across all complete (facility, group, origin_date) 7-day windows.
+
+    Formula: sum(|sum_{h=1..7} y - sum_{h=1..7} y_hat|) / sum(sum_{h=1..7} y)
+    """
+    h7_df = df[df["horizon"].isin(range(1, 8))]
+    if len(h7_df) == 0:
+        return np.nan
+
+    grouped = h7_df.groupby(["facility", "group", "origin_date"], observed=False).agg(
+        pred_7d=("prediction", "sum"),
+        true_7d=("target", "sum"),
+        count=("horizon", "count"),
+    )
+    # Only keep complete 7-day forecast windows
+    grouped = grouped[grouped["count"] == 7]
+    if len(grouped) == 0:
+        return np.nan
+
+    total_actual_7d = grouped["true_7d"].sum()
+    total_abs_error_7d = np.abs(grouped["true_7d"] - grouped["pred_7d"]).sum()
+
+    return float(total_abs_error_7d / total_actual_7d) if total_actual_7d > 0 else np.nan
+
+
 def compute_regression_metrics(
     df: pd.DataFrame, mase_scales: dict[tuple[str, str], float]
 ) -> dict[str, float]:
-    """Compute WAPE, MASE, and pinball losses (if prediction intervals provided)."""
+    """Compute WAPE, MASE, WAPE_7D, and pinball losses (if prediction intervals provided)."""
     if len(df) == 0:
         return {
             "wape": np.nan,
+            "wape_7d": np.nan,
             "mase": np.nan,
             "pinball_10": np.nan,
             "pinball_90": np.nan,
@@ -144,6 +175,9 @@ def compute_regression_metrics(
     # WAPE = sum(|y - y_hat|) / sum(y)
     wape = float(total_abs_error / total_actual) if total_actual > 0 else np.nan
 
+    # WAPE_7D = sum(|sum_7d y - sum_7d y_hat|) / sum(sum_7d y)
+    wape_7d = compute_wape_7d(df)
+
     # MASE = mean( |y - y_hat| / scale_(fac, grp) )
     scales = np.array(
         [
@@ -156,6 +190,7 @@ def compute_regression_metrics(
 
     metrics: dict[str, float] = {
         "wape": wape,
+        "wape_7d": wape_7d,
         "mase": mase,
         "count": len(df),
     }
@@ -223,11 +258,64 @@ class HistoricalTypicalLookup:
         return 0.0
 
 
+def _evaluate_shortfall_subset(
+    grouped_subset: pd.DataFrame,
+    threshold_col: str = "threshold",
+) -> dict[str, Any]:
+    """Helper to evaluate confusion matrix, prevalence, precision, recall, and F1 on a grouped DataFrame."""
+    if len(grouped_subset) == 0:
+        return {
+            "prevalence": np.nan,
+            "precision": np.nan,
+            "recall": np.nan,
+            "f1": np.nan,
+            "tp": 0,
+            "fp": 0,
+            "fn": 0,
+            "tn": 0,
+            "actual_shortfalls": 0,
+            "predicted_shortfalls": 0,
+            "total_windows": 0,
+        }
+
+    pred_flag = grouped_subset["pred_7d"] < grouped_subset[threshold_col]
+    true_flag = grouped_subset["true_7d"] < grouped_subset[threshold_col]
+
+    tp = int(np.sum(pred_flag & true_flag))
+    fp = int(np.sum(pred_flag & (~true_flag)))
+    fn = int(np.sum((~pred_flag) & true_flag))
+    tn = int(np.sum((~pred_flag) & (~true_flag)))
+
+    total_windows = len(grouped_subset)
+    actual_shortfalls = int(np.sum(true_flag))
+    predicted_shortfalls = int(np.sum(pred_flag))
+
+    prevalence = float(actual_shortfalls / total_windows) if total_windows > 0 else 0.0
+    precision = float(tp / (tp + fp)) if (tp + fp) > 0 else 0.0
+    recall = float(tp / (tp + fn)) if (tp + fn) > 0 else 0.0
+    f1 = float(2 * (precision * recall) / (precision + recall)) if (precision + recall) > 0 else 0.0
+
+    return {
+        "prevalence": prevalence,
+        "precision": precision,
+        "recall": recall,
+        "f1": f1,
+        "tp": tp,
+        "fp": fp,
+        "fn": fn,
+        "tn": tn,
+        "actual_shortfalls": actual_shortfalls,
+        "predicted_shortfalls": predicted_shortfalls,
+        "total_windows": total_windows,
+    }
+
+
 def compute_shortfall_metrics(
     predictions_df: pd.DataFrame,
     long_df: pd.DataFrame,
     shortfall_ratio: float = SHORTFALL_RATIO,
     typical_years: int = TYPICAL_YEARS,
+    facility_tiers: dict[str, str] | None = None,
     typical_lookup: HistoricalTypicalLookup | None = None,
 ) -> dict[str, Any]:
     """Evaluate 7-day shortfall alert classification for horizons 1..7.
@@ -239,10 +327,13 @@ def compute_shortfall_metrics(
     - pred_shortfall = (sum_pred_7d < shortfall_ratio * typical_7d)
     - actual_shortfall = (sum_true_7d < shortfall_ratio * typical_7d)
 
-    Returns precision, recall, f1, support, and confusion matrix counts.
+    Returns overall and tier-level prevalence, precision, recall, f1, support, and confusion matrix counts.
     """
     if typical_lookup is None:
         typical_lookup = HistoricalTypicalLookup(long_df)
+
+    if facility_tiers is None:
+        facility_tiers = compute_facility_tiers(long_df, train_end=TRAIN_END)
 
     # Restrict to horizons 1..7
     h7_df = predictions_df[predictions_df["horizon"].isin(range(1, 8))].copy()
@@ -262,18 +353,12 @@ def compute_shortfall_metrics(
     grouped = grouped[grouped["count"] == 7].copy()
 
     if len(grouped) == 0:
-        return {
-            "precision": np.nan,
-            "recall": np.nan,
-            "f1": np.nan,
-            "tp": 0,
-            "fp": 0,
-            "fn": 0,
-            "tn": 0,
-            "actual_shortfalls": 0,
-            "predicted_shortfalls": 0,
-            "total_windows": 0,
+        empty_res = _evaluate_shortfall_subset(grouped)
+        empty_res["by_tier"] = {
+            tier: _evaluate_shortfall_subset(pd.DataFrame())
+            for tier in ["top_5", "middle", "bottom_7"]
         }
+        return empty_res
 
     # Vectorized / memoized typical calculation
     typical_cache: dict[tuple[str, str, str], float] = {}
@@ -290,32 +375,21 @@ def compute_shortfall_metrics(
         return typical_cache[key]
 
     grouped["typical"] = grouped.apply(_get_typical, axis=1)
-    threshold = shortfall_ratio * grouped["typical"]
+    grouped["threshold"] = shortfall_ratio * grouped["typical"]
+    grouped["facility_tier"] = grouped["facility"].map(
+        lambda f: facility_tiers.get(str(f), "middle")
+    )
 
-    pred_flag = grouped["pred_7d"] < threshold
-    true_flag = grouped["true_7d"] < threshold
+    overall_metrics = _evaluate_shortfall_subset(grouped, threshold_col="threshold")
 
-    tp = int(np.sum(pred_flag & true_flag))
-    fp = int(np.sum(pred_flag & (~true_flag)))
-    fn = int(np.sum((~pred_flag) & true_flag))
-    tn = int(np.sum((~pred_flag) & (~true_flag)))
+    # Breakdown by facility tier
+    by_tier = {}
+    for tier in ["top_5", "middle", "bottom_7"]:
+        tier_sub = grouped[grouped["facility_tier"] == tier]
+        by_tier[tier] = _evaluate_shortfall_subset(tier_sub, threshold_col="threshold")
 
-    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-    f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
-
-    return {
-        "precision": float(precision),
-        "recall": float(recall),
-        "f1": float(f1),
-        "tp": tp,
-        "fp": fp,
-        "fn": fn,
-        "tn": tn,
-        "actual_shortfalls": int(np.sum(true_flag)),
-        "predicted_shortfalls": int(np.sum(pred_flag)),
-        "total_windows": len(grouped),
-    }
+    overall_metrics["by_tier"] = by_tier
+    return overall_metrics
 
 
 def evaluate_breakdowns(
@@ -377,12 +451,34 @@ def evaluate_breakdowns(
     else:
         merged = df
 
-    holiday_df = merged[merged["is_public_holiday"] == 1]
-    non_holiday_df = merged[merged["is_public_holiday"] == 0]
+    # For 7D holiday aggregation: a 7-day window is a holiday window if any target day in h=1..7 is a holiday
+    # Group at origin-facility-group level to assign window-level holiday flag
+    h7_df = merged[merged["horizon"].isin(range(1, 8))].copy()
+    window_holidays = (
+        h7_df.groupby(["facility", "group", "origin_date"], observed=False)["is_public_holiday"]
+        .max()
+        .reset_index()
+        .rename(columns={"is_public_holiday": "window_has_holiday"})
+    )
+    merged_with_wh = merged.merge(
+        window_holidays, on=["facility", "group", "origin_date"], how="left"
+    )
+
+    holiday_df = merged_with_wh[merged_with_wh["is_public_holiday"] == 1]
+    non_holiday_df = merged_with_wh[merged_with_wh["is_public_holiday"] == 0]
+
+    holiday_metrics = compute_regression_metrics(holiday_df, mase_scales)
+    non_holiday_metrics = compute_regression_metrics(non_holiday_df, mase_scales)
+
+    # Calculate WAPE_7D partitioned by whether the 7-day window contains a holiday
+    w_hol_df = merged_with_wh[merged_with_wh["window_has_holiday"] == 1]
+    w_non_hol_df = merged_with_wh[merged_with_wh["window_has_holiday"] == 0]
+    holiday_metrics["wape_7d"] = compute_wape_7d(w_hol_df)
+    non_holiday_metrics["wape_7d"] = compute_wape_7d(w_non_hol_df)
 
     results["by_holiday"] = {
-        "holiday": compute_regression_metrics(holiday_df, mase_scales),
-        "non_holiday": compute_regression_metrics(non_holiday_df, mase_scales),
+        "holiday": holiday_metrics,
+        "non_holiday": non_holiday_metrics,
     }
 
     return results
@@ -397,12 +493,12 @@ def format_results_markdown(
     """Format evaluation results as a comprehensive markdown report."""
     overall = results["overall"]
     pinball_10_str = (
-        f"{overall['pinball_10']:.4f}"
+        f"{overall['pinball_10']:.2f}"
         if "pinball_10" in overall and not np.isnan(overall["pinball_10"])
         else "N/A"
     )
     pinball_90_str = (
-        f"{overall['pinball_90']:.4f}"
+        f"{overall['pinball_90']:.2f}"
         if "pinball_90" in overall and not np.isnan(overall["pinball_90"])
         else "N/A"
     )
@@ -421,8 +517,9 @@ def format_results_markdown(
         "",
         "| Metric | Value | Description |",
         "|---|---|---|",
-        f"| **WAPE** | **{overall['wape']:.4%}** | Weighted Absolute Percentage Error |",
-        f"| **MASE** | **{overall['mase']:.4f}** | Mean Absolute Scaled Error (vs in-sample seasonal naive 7) |",
+        f"| **WAPE_7D (Primary)** | **{overall['wape_7d'] * 100:.1f}%** | 7-day cumulative sum WAPE |",
+        f"| **WAPE (Daily)** | **{overall['wape'] * 100:.1f}%** | Daily Weighted Absolute Percentage Error |",
+        f"| **MASE** | **{overall['mase']:.2f}** | Mean Absolute Scaled Error (vs 2020–2022 seasonal naive 7) |",
         f"| **Pinball Loss (p10)** | {pinball_10_str} | Quantile loss at 10th percentile |",
         f"| **Pinball Loss (p90)** | {pinball_90_str} | Quantile loss at 90th percentile |",
         "",
@@ -432,31 +529,53 @@ def format_results_markdown(
         "",
         f"- **Shortfall Definition**: 7-day predicted sum < {SHORTFALL_RATIO:.1f} × historical 3-year median for ISO week",
         f"- **Evaluated Windows**: {shortfall_metrics['total_windows']:,}",
-        f"- **Actual Shortfall Windows**: {shortfall_metrics['actual_shortfalls']:,}",
+        f"- **Actual Shortfall Windows**: {shortfall_metrics['actual_shortfalls']:,} (Prevalence: **{shortfall_metrics['prevalence'] * 100:.1f}%**)",
         f"- **Predicted Shortfall Windows**: {shortfall_metrics['predicted_shortfalls']:,}",
         "",
         "| Metric | Value |",
         "|---|---|",
-        f"| **Precision** | **{shortfall_metrics['precision']:.4%}** |",
-        f"| **Recall** | **{shortfall_metrics['recall']:.4%}** |",
-        f"| **F1 Score** | **{shortfall_metrics['f1']:.4f}** |",
+        f"| **Prevalence** | **{shortfall_metrics['prevalence'] * 100:.1f}%** |",
+        f"| **Precision** | **{shortfall_metrics['precision'] * 100:.1f}%** |",
+        f"| **Recall** | **{shortfall_metrics['recall'] * 100:.1f}%** |",
+        f"| **F1 Score** | **{shortfall_metrics['f1']:.2f}** |",
         f"| True Positives (TP) | {shortfall_metrics['tp']} |",
         f"| False Positives (FP) | {shortfall_metrics['fp']} |",
         f"| False Negatives (FN) | {shortfall_metrics['fn']} |",
         f"| True Negatives (TN) | {shortfall_metrics['tn']} |",
         "",
-        "---",
+        "### Shortfall Metrics by Facility Tier",
         "",
-        "## 3. Breakdown by Horizon (h = 1..14)",
-        "",
-        "| Horizon | WAPE | MASE | Count |",
-        "|---|---|---|---|",
+        "| Tier | Description | Prevalence | Precision | Recall | F1 Score | Windows |",
+        "|---|---|---|---|---|---|---|",
     ]
+
+    tier_desc = {
+        "top_5": "Top 5 High-Volume Sites",
+        "middle": "Middle 10 Sites",
+        "bottom_7": "Bottom 7 Small Sites",
+    }
+    for tier in ["top_5", "middle", "bottom_7"]:
+        t_sf = shortfall_metrics["by_tier"][tier]
+        md.append(
+            f"| **{tier}** | {tier_desc[tier]} | {t_sf['prevalence'] * 100:.1f}% | {t_sf['precision'] * 100:.1f}% | {t_sf['recall'] * 100:.1f}% | {t_sf['f1']:.2f} | {t_sf['total_windows']:,} |"
+        )
+
+    md.extend(
+        [
+            "",
+            "---",
+            "",
+            "## 3. Breakdown by Horizon (h = 1..14)",
+            "",
+            "| Horizon | WAPE | MASE | Count |",
+            "|---|---|---|---|",
+        ]
+    )
 
     for h in sorted(results["by_horizon"].keys()):
         h_met = results["by_horizon"][h]
         md.append(
-            f"| Day {h:02d} | {h_met['wape']:.4%} | {h_met['mase']:.4f} | {h_met['count']:,} |"
+            f"| Day {h:02d} | {h_met['wape'] * 100:.1f}% | {h_met['mase']:.2f} | {h_met['count']:,} |"
         )
 
     md.extend(
@@ -466,15 +585,17 @@ def format_results_markdown(
             "",
             "## 4. Breakdown by Blood Group",
             "",
-            "| Group | WAPE | MASE | Count |",
-            "|---|---|---|---|",
+            "| Group | WAPE_7D | Daily WAPE | MASE | Count |",
+            "|---|---|---|---|---|",
         ]
     )
 
     for grp in ["A", "B", "O", "AB"]:
         if grp in results["by_group"]:
             g_met = results["by_group"][grp]
-            md.append(f"| {grp} | {g_met['wape']:.4%} | {g_met['mase']:.4f} | {g_met['count']:,} |")
+            md.append(
+                f"| **{grp}** | {g_met['wape_7d'] * 100:.1f}% | {g_met['wape'] * 100:.1f}% | {g_met['mase']:.2f} | {g_met['count']:,} |"
+            )
 
     md.extend(
         [
@@ -483,20 +604,20 @@ def format_results_markdown(
             "",
             "## 5. Breakdown by Facility Tier",
             "",
-            "| Tier | Description | WAPE | MASE | Count |",
-            "|---|---|---|---|---|",
-            f"| Top 5 | PDN, Penang, JB, Ipoh, Melaka | {results['by_tier']['top_5']['wape']:.4%} | {results['by_tier']['top_5']['mase']:.4f} | {results['by_tier']['top_5']['count']:,} |",
-            f"| Middle (10) | Mid-size hospitals | {results['by_tier']['middle']['wape']:.4%} | {results['by_tier']['middle']['mase']:.4f} | {results['by_tier']['middle']['count']:,} |",
-            f"| Bottom 7 | Small / intermittent hospitals | {results['by_tier']['bottom_7']['wape']:.4%} | {results['by_tier']['bottom_7']['mase']:.4f} | {results['by_tier']['bottom_7']['count']:,} |",
+            "| Tier | Description | WAPE_7D | Daily WAPE | MASE | Count |",
+            "|---|---|---|---|---|---|",
+            f"| **top_5** | PDN, Penang, JB, Ipoh, Melaka | {results['by_tier']['top_5']['wape_7d'] * 100:.1f}% | {results['by_tier']['top_5']['wape'] * 100:.1f}% | {results['by_tier']['top_5']['mase']:.2f} | {results['by_tier']['top_5']['count']:,} |",
+            f"| **middle** | Mid-size hospitals | {results['by_tier']['middle']['wape_7d'] * 100:.1f}% | {results['by_tier']['middle']['wape'] * 100:.1f}% | {results['by_tier']['middle']['mase']:.2f} | {results['by_tier']['middle']['count']:,} |",
+            f"| **bottom_7** | Small / intermittent hospitals | {results['by_tier']['bottom_7']['wape_7d'] * 100:.1f}% | {results['by_tier']['bottom_7']['wape'] * 100:.1f}% | {results['by_tier']['bottom_7']['mase']:.2f} | {results['by_tier']['bottom_7']['count']:,} |",
             "",
             "---",
             "",
             "## 6. Holiday Window Slices",
             "",
-            "| Window | WAPE | MASE | Count |",
-            "|---|---|---|---|",
-            f"| Public Holiday | {results['by_holiday']['holiday']['wape']:.4%} | {results['by_holiday']['holiday']['mase']:.4f} | {results['by_holiday']['holiday']['count']:,} |",
-            f"| Non-Holiday | {results['by_holiday']['non_holiday']['wape']:.4%} | {results['by_holiday']['non_holiday']['mase']:.4f} | {results['by_holiday']['non_holiday']['count']:,} |",
+            "| Window | WAPE_7D | Daily WAPE | MASE | Count |",
+            "|---|---|---|---|---|",
+            f"| **Public Holiday** | {results['by_holiday']['holiday']['wape_7d'] * 100:.1f}% | {results['by_holiday']['holiday']['wape'] * 100:.1f}% | {results['by_holiday']['holiday']['mase']:.2f} | {results['by_holiday']['holiday']['count']:,} |",
+            f"| **Non-Holiday** | {results['by_holiday']['non_holiday']['wape_7d'] * 100:.1f}% | {results['by_holiday']['non_holiday']['wape'] * 100:.1f}% | {results['by_holiday']['non_holiday']['mase']:.2f} | {results['by_holiday']['non_holiday']['count']:,} |",
             "",
         ]
     )
@@ -584,8 +705,10 @@ def evaluate(
 
     fac_state_df = load_facility_state_mapping(FACILITY_STATE_FILE)
 
-    # 3. Compute in-sample MASE scaling factors on training data
-    mase_scales = compute_mase_scales(long_df, train_end=TRAIN_END)
+    # 3. Compute in-sample MASE scaling factors on training data (2020-2022 window)
+    mase_scales = compute_mase_scales(
+        long_df, window_start=MASE_WINDOW_START, window_end=MASE_WINDOW_END
+    )
 
     # 4. Facility tiers
     facility_tiers = compute_facility_tiers(long_df, train_end=TRAIN_END)
@@ -605,6 +728,7 @@ def evaluate(
         long_df=long_df,
         shortfall_ratio=SHORTFALL_RATIO,
         typical_years=TYPICAL_YEARS,
+        facility_tiers=facility_tiers,
     )
 
     # 7. Write Markdown Report
