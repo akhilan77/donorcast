@@ -48,3 +48,20 @@ SEED = 42
 FEATURES_DIR = DATA_PROCESSED_DIR / "features"
 DONATION_LAGS = [0, 1, 2, 6, 13, 20, 27]
 FINAL_RUN_FILE = REPORTS_DIR / "final_run.json"
+OUTPUTS_DIR = PROJECT_ROOT / "outputs"
+
+# Shortfall Severity Ratios
+SHORTFALL_HIGH_RATIO = 0.7
+SHORTFALL_MEDIUM_RATIO = 0.8
+
+# Historical Replay Origins for Dashboard Comparison
+REPLAY_ORIGINS = [
+    "2025-01-27",  # Monday before Chinese New Year 2025 (2025-01-29)
+    "2025-03-24",  # Monday before Hari Raya Aidilfitri 2025 (2025-03-30)
+    "2025-10-13",  # Monday before Deepavali 2025 (2025-10-20)
+    "2025-05-12",  # Test origin 4: Post-festival / regular term Monday
+    "2025-08-11",  # Test origin 5: Pre-National Day / school holiday window
+    "2025-12-15",  # Test origin 6: Year-end school holiday season
+    "2026-02-09",  # Test origin 7: Early 2026 Monday
+    "2026-06-15",  # Test origin 8: Mid 2026 Monday
+]

@@ -71,6 +71,18 @@ def create_parser() -> argparse.ArgumentParser:
         print(f" - Beeswarm: {res['beeswarm']}")
         print(f" - Bar plot: {res['bar']}")
 
+    def handle_alerts(args):
+        from donorcast.shortfall import generate_and_save_alerts, precompute_replay_origins
+
+        if getattr(args, "precompute_replay", False):
+            precompute_replay_origins()
+            print("\nGenerating live alerts for origin:", args.origin)
+            generate_and_save_alerts(origin_date=args.origin)
+        else:
+            generate_and_save_alerts(origin_date=args.origin)
+
+    from donorcast.config import DATA_CUTOFF
+
     subcommands = [
         ("clean", "Clean raw data and produce processed long parquet format.", handle_clean),
         ("features", "Generate time series and calendar features.", handle_features),
@@ -78,7 +90,7 @@ def create_parser() -> argparse.ArgumentParser:
         ("train", "Train models (SARIMA, LightGBM, LSTM).", handle_train),
         ("final", "Run final evaluation on test set.", handle_final),
         ("explain", "Generate global SHAP summary plots and explainability artifacts.", handle_explain),
-        ("alerts", "Generate shortfall alerts table.", None),
+        ("alerts", "Generate shortfall alerts table and 14-day forecasts.", handle_alerts),
         ("all", "Run the entire end-to-end pipeline.", None),
     ]
 
@@ -110,6 +122,18 @@ def create_parser() -> argparse.ArgumentParser:
                 type=int,
                 default=1000,
                 help="Number of test rows to sample for SHAP summary (default: 1000).",
+            )
+        elif cmd == "alerts":
+            subparser.add_argument(
+                "--origin",
+                type=str,
+                default=DATA_CUTOFF,
+                help=f"Forecast origin date in YYYY-MM-DD format (default: {DATA_CUTOFF}).",
+            )
+            subparser.add_argument(
+                "--precompute-replay",
+                action="store_true",
+                help="Precompute forecasts and alerts for the 8 historical replay origins.",
             )
         if handler:
             subparser.set_defaults(func=handler)
