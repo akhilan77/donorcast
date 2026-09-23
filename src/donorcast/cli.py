@@ -32,7 +32,9 @@ def create_parser() -> argparse.ArgumentParser:
         if handler:
             subparser.set_defaults(func=handler)
         else:
-            subparser.set_defaults(func=lambda args, c=cmd: print(f"Placeholder: Subcommand '{c}' called."))
+            subparser.set_defaults(
+                func=lambda args, c=cmd: print(f"Placeholder: Subcommand '{c}' called.")
+            )
 
     return parser
 

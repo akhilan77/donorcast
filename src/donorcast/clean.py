@@ -116,21 +116,20 @@ def clean_data(
     donor_mismatches = int((donor_sum != valid_fac["daily"]).sum())
 
     social_sum = (
-        valid_fac["social_civilian"]
-        + valid_fac["social_student"]
-        + valid_fac["social_policearmy"]
+        valid_fac["social_civilian"] + valid_fac["social_student"] + valid_fac["social_policearmy"]
     )
     social_mismatches = int((social_sum != valid_fac["daily"]).sum())
 
     group_sum = (
-        valid_fac["blood_a"]
-        + valid_fac["blood_b"]
-        + valid_fac["blood_o"]
-        + valid_fac["blood_ab"]
+        valid_fac["blood_a"] + valid_fac["blood_b"] + valid_fac["blood_o"] + valid_fac["blood_ab"]
     )
     group_mismatch_mask = group_sum != valid_fac["daily"]
     group_mismatches = int(group_mismatch_mask.sum())
-    group_mismatch_diffs = (valid_fac.loc[group_mismatch_mask, "daily"] - group_sum[group_mismatch_mask]).value_counts().to_dict()
+    group_mismatch_diffs = (
+        (valid_fac.loc[group_mismatch_mask, "daily"] - group_sum[group_mismatch_mask])
+        .value_counts()
+        .to_dict()
+    )
 
     # 5. Build long table with raw_ prefix on same-day lagged candidate features
     newdonors_subset = valid_new[["date", "hospital", "17-24", "total"]].rename(
@@ -199,7 +198,9 @@ def clean_data(
         "raw_newdonor_17_24",
         "raw_newdonor_total",
     ]
-    long_df = long_df[final_columns].sort_values(["facility", "date", "group"]).reset_index(drop=True)
+    long_df = (
+        long_df[final_columns].sort_values(["facility", "date", "group"]).reset_index(drop=True)
+    )
 
     # 6. Save outputs
     output_parquet = processed_dir / "long.parquet"
@@ -237,7 +238,7 @@ Generated for dataset cutoff `{cutoff_date}`.
 ## 5. Processed Dataset
 - File: `{output_parquet}`
 - Total rows: `{len(long_df):,}` (`{num_facilities}` facilities × 4 blood groups × `{expected_num_days}` days)
-- Columns: `{', '.join(long_df.columns)}`
+- Columns: `{", ".join(long_df.columns)}`
 """
     with open(log_path, "w", encoding="utf-8") as f:
         f.write(log_content)

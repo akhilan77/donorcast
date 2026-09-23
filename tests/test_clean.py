@@ -104,9 +104,7 @@ def test_breakdown_sums_reconcile():
 
     # Social Group
     social_sum = (
-        valid_fac["social_civilian"]
-        + valid_fac["social_student"]
-        + valid_fac["social_policearmy"]
+        valid_fac["social_civilian"] + valid_fac["social_student"] + valid_fac["social_policearmy"]
     )
     assert (social_sum != valid_fac["daily"]).sum() == 0
 

@@ -26,9 +26,7 @@ def test_raw_data_frozen():
     for filename in RAW_DATA_URLS:
         file_path = DATA_RAW_DIR / filename
         assert file_path.exists(), f"Raw file {filename} does not exist at {file_path}"
-        assert (
-            filename in recorded_hashes
-        ), f"No recorded hash for {filename} in {HASHES_FILE}"
+        assert filename in recorded_hashes, f"No recorded hash for {filename} in {HASHES_FILE}"
 
         current_hash = compute_sha256(file_path)
         assert current_hash == recorded_hashes[filename], (
