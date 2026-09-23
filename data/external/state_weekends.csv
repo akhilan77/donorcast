@@ -1,0 +1,19 @@
+state,weekend_type,valid_from,valid_to,source
+Johor,SAT_SUN,2006-01-01,2013-12-31,Pekeliling Perkhidmatan Negeri Johor (Sebelum Titah Sultan Johor 2013)
+Johor,FRI_SAT,2014-01-01,2024-12-31,Warta Kerajaan Negeri Johor J.P.U. 45/2013 (Titah Sultan Ibrahim ibni Almarhum Sultan Iskandar)
+Johor,SAT_SUN,2025-01-01,2026-12-31,Titah Pemangku Sultan Johor Tunku Mahkota Ismail (7 Okt 2024) / Warta Kerajaan Negeri Johor 2024
+Kedah,FRI_SAT,2006-01-01,2026-12-31,Warta Kerajaan Negeri Kedah / Pekeliling Perkhidmatan Negeri Kedah
+Kelantan,FRI_SAT,2006-01-01,2026-12-31,Pekeliling Perkhidmatan Negeri Kelantan Bil. 1/1994 & Arahan Perkhidmatan Awam Negeri
+Melaka,SAT_SUN,2006-01-01,2026-12-31,Pekeliling Perkhidmatan Persekutuan JPA/PEN/229/6/1 (Pelaksanaan 5 Hari Bekerja)
+Negeri Sembilan,SAT_SUN,2006-01-01,2026-12-31,Pekeliling Perkhidmatan Persekutuan JPA/PEN/229/6/1 (Pelaksanaan 5 Hari Bekerja)
+Pahang,SAT_SUN,2006-01-01,2026-12-31,Pekeliling Perkhidmatan Persekutuan JPA/PEN/229/6/1 (Pelaksanaan 5 Hari Bekerja)
+Perak,SAT_SUN,2006-01-01,2026-12-31,Pekeliling Perkhidmatan Persekutuan JPA/PEN/229/6/1 (Pelaksanaan 5 Hari Bekerja)
+Perlis,SAT_SUN,2006-01-01,2026-12-31,Pekeliling Perkhidmatan Persekutuan JPA/PEN/229/6/1 (Pelaksanaan 5 Hari Bekerja)
+Pulau Pinang,SAT_SUN,2006-01-01,2026-12-31,Pekeliling Perkhidmatan Persekutuan JPA/PEN/229/6/1 (Pelaksanaan 5 Hari Bekerja)
+Sabah,SAT_SUN,2006-01-01,2026-12-31,Pekeliling Perkhidmatan Awam Negeri Sabah Bil. 4/2005 (5 Hari Bekerja)
+Sarawak,SAT_SUN,2006-01-01,2026-12-31,Pekeliling Perjawatan Negeri Sarawak Bil. 13/2005 (5 Hari Bekerja)
+Selangor,SAT_SUN,2006-01-01,2026-12-31,Pekeliling Perkhidmatan Persekutuan JPA/PEN/229/6/1 (Pelaksanaan 5 Hari Bekerja)
+Terengganu,FRI_SAT,2006-01-01,2026-12-31,Pekeliling Perkhidmatan Negeri Terengganu / Warta Kerajaan Negeri Terengganu
+W.P. Kuala Lumpur,SAT_SUN,2006-01-01,2026-12-31,Pekeliling Perkhidmatan Persekutuan JPA/PEN/229/6/1 (Pelaksanaan 5 Hari Bekerja)
+W.P. Labuan,SAT_SUN,2006-01-01,2026-12-31,Pekeliling Perkhidmatan Persekutuan JPA/PEN/229/6/1 (Pelaksanaan 5 Hari Bekerja)
+W.P. Putrajaya,SAT_SUN,2006-01-01,2026-12-31,Pekeliling Perkhidmatan Persekutuan JPA/PEN/229/6/1 (Pelaksanaan 5 Hari Bekerja)

@@ -1,0 +1,19 @@
+start_date,end_date,phase,source
+2020-03-18,2020-03-31,MCO Phase 1,Perutusan Khas YAB Perdana Menteri (16 Mac 2020) & Warta Kerajaan Persekutuan P.U. (A) 87/2020
+2020-04-01,2020-04-14,MCO Phase 2,Perutusan Khas YAB Perdana Menteri (25 Mac 2020) & Warta Kerajaan Persekutuan P.U. (A) 102/2020
+2020-04-15,2020-04-28,MCO Phase 3,Perutusan Khas YAB Perdana Menteri (10 April 2020) & Warta Kerajaan Persekutuan P.U. (A) 110/2020
+2020-04-29,2020-05-03,MCO Phase 4,Perutusan Khas YAB Perdana Menteri (23 April 2020) & Warta Kerajaan Persekutuan P.U. (A) 130/2020
+2020-05-04,2020-06-09,Conditional MCO (CMCO / PKPB),Perutusan Khas YAB Perdana Menteri (1 Mei 2020) & Warta Kerajaan Persekutuan P.U. (A) 136/2020
+2020-06-10,2020-08-31,Recovery MCO (RMCO / PKPP),Perutusan Khas YAB Perdana Menteri (7 Jun 2020) & Warta Kerajaan Persekutuan P.U. (A) 179/2020
+2020-09-01,2020-12-31,Recovery MCO Extension (RMCO),Perutusan Khas YAB Perdana Menteri (28 Ogos 2020) & Majlis Keselamatan Negara (MKN)
+2021-01-01,2021-01-12,Recovery MCO Further Extension,Majlis Keselamatan Negara (MKN) & Kementerian Kesihatan Malaysia (KKM)
+2021-01-13,2021-01-26,MCO 2.0 (Phase 1),Perutusan Khas YAB Perdana Menteri (11 Jan 2021) & Warta Kerajaan Persekutuan P.U. (A) 8/2021
+2021-01-27,2021-02-04,MCO 2.0 (Extension 1),Sidang Media Kanan Menteri Pertahanan (MKN) (21 Jan 2021)
+2021-02-05,2021-02-18,MCO 2.0 (Extension 2),Sidang Media Kanan Menteri Pertahanan (MKN) (2 Feb 2021)
+2021-02-19,2021-03-04,MCO 2.0 / Targeted CMCO,Majlis Keselamatan Negara (MKN) SOP PKP/PKPB (16 Feb 2021)
+2021-03-05,2021-05-11,Conditional / Recovery MCO State Transitions,Majlis Keselamatan Negara (MKN) SOP Fasa Negeri
+2021-05-12,2021-05-31,MCO 3.0 Nationwide,Kenyataan Media Pejabat Perdana Menteri (10 Mei 2021) & SOP MKN
+2021-06-01,2021-06-14,Full MCO (FMCO / National Total Lockdown Phase 1),Kenyataan Media Pejabat Perdana Menteri (28 Mei 2021) & Warta Kerajaan P.U. (A) 253/2021
+2021-06-15,2021-06-28,Full MCO Extension,Sidang Media Menteri Kanan Pertahanan (11 Jun 2021)
+2021-06-29,2021-12-31,National Recovery Plan (NRP Phase 1-4 State Transitions),Pelan Pemulihan Negara (PPN) / Majlis Keselamatan Negara (MKN)
+2022-04-01,2022-04-30,Transition to Endemicity,Perutusan Khas YAB Perdana Menteri (8 Mac 2022) - Peralihan ke Fasa Endemik
