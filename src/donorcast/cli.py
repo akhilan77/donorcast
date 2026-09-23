@@ -62,12 +62,22 @@ def create_parser() -> argparse.ArgumentParser:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
 
+    def handle_explain(args):
+        print("Generating global SHAP summary visualizations...")
+        from donorcast.explain import generate_global_shap_summary
+
+        res = generate_global_shap_summary(sample_size=args.sample_size)
+        print("SHAP summary plots generated successfully:")
+        print(f" - Beeswarm: {res['beeswarm']}")
+        print(f" - Bar plot: {res['bar']}")
+
     subcommands = [
         ("clean", "Clean raw data and produce processed long parquet format.", handle_clean),
         ("features", "Generate time series and calendar features.", handle_features),
         ("baselines", "Run baseline models (M0, M0b) on validation data.", handle_baselines),
         ("train", "Train models (SARIMA, LightGBM, LSTM).", handle_train),
         ("final", "Run final evaluation on test set.", handle_final),
+        ("explain", "Generate global SHAP summary plots and explainability artifacts.", handle_explain),
         ("alerts", "Generate shortfall alerts table.", None),
         ("all", "Run the entire end-to-end pipeline.", None),
     ]
@@ -93,6 +103,13 @@ def create_parser() -> argparse.ArgumentParser:
                 "--force",
                 action="store_true",
                 help="Force re-running the final test evaluation even if final_run.json exists.",
+            )
+        elif cmd == "explain":
+            subparser.add_argument(
+                "--sample-size",
+                type=int,
+                default=1000,
+                help="Number of test rows to sample for SHAP summary (default: 1000).",
             )
         if handler:
             subparser.set_defaults(func=handler)

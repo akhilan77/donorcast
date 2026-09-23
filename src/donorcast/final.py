@@ -244,7 +244,7 @@ def format_final_results_markdown(
         ]
     )
 
-    all_horizons = sorted(results_lgbm["by_horizon"].keys())
+    all_horizons = sorted(results_lgbm["by_horizon"].keys(), key=lambda x: int(x))
     for h in all_horizons:
         m0_h = results_m0["by_horizon"][h]
         m0b_h = results_m0b["by_horizon"][h]
@@ -256,8 +256,9 @@ def format_final_results_markdown(
         elif m0_h["wape"] < lgb_h["wape"] and m0_h["wape"] < m0b_h["wape"]:
             best = "M0"
 
+        h_int = int(h)
         md.append(
-            f"| Day {h:02d} | {m0_h['wape'] * 100:.1f}% | {m0_h['mase']:.2f} | {m0b_h['wape'] * 100:.1f}% | {m0b_h['mase']:.2f} | **{lgb_h['wape'] * 100:.1f}%** | **{lgb_h['mase']:.2f}** | **{best}** |"
+            f"| Day {h_int:02d} | {m0_h['wape'] * 100:.1f}% | {m0_h['mase']:.2f} | {m0b_h['wape'] * 100:.1f}% | {m0b_h['mase']:.2f} | **{lgb_h['wape'] * 100:.1f}%** | **{lgb_h['mase']:.2f}** | **{best}** |"
         )
 
     md.extend(
@@ -310,7 +311,7 @@ def format_final_results_markdown(
             best_t = "M0b"
 
         md.append(
-            f"| **{tier}** | {tier_desc[tier]} | {m0_t['wape_7d'] * 100:.1f}% | {m0b_t['wape'] * 100:.1f}% | **{lgb_t['wape_7d'] * 100:.1f}%** | {lgb_t['wape'] * 100:.1f}% | {lgb_t['mase']:.2f} | **{best_t}** |"
+            f"| **{tier}** | {tier_desc[tier]} | {m0_t['wape_7d'] * 100:.1f}% | {m0b_t['wape_7d'] * 100:.1f}% | **{lgb_t['wape_7d'] * 100:.1f}%** | {lgb_t['wape'] * 100:.1f}% | {lgb_t['mase']:.2f} | **{best_t}** |"
         )
 
     md.extend(
@@ -322,8 +323,8 @@ def format_final_results_markdown(
             "",
             "| Window | M0 WAPE_7D | M0b WAPE_7D | LightGBM WAPE_7D | LightGBM Daily WAPE | LightGBM MASE | Best (7D) |",
             "|---|---|---|---|---|---|---|",
-            f"| **Public Holiday** | {results_m0['by_holiday']['holiday']['wape_7d'] * 100:.1f}% | {results_m0['by_holiday']['holiday']['wape_7d'] * 100:.1f}% | **{results_lgbm['by_holiday']['holiday']['wape_7d'] * 100:.1f}%** | {results_lgbm['by_holiday']['holiday']['wape'] * 100:.1f}% | {results_lgbm['by_holiday']['holiday']['mase']:.2f} | **{'LightGBM' if results_lgbm['by_holiday']['holiday']['wape_7d'] < results_m0b['by_holiday']['holiday']['wape_7d'] else 'M0b'}** |",
-            f"| **Non-Holiday** | {results_m0['by_holiday']['non_holiday']['wape_7d'] * 100:.1f}% | {results_m0['by_holiday']['non_holiday']['wape_7d'] * 100:.1f}% | **{results_lgbm['by_holiday']['non_holiday']['wape_7d'] * 100:.1f}%** | {results_lgbm['by_holiday']['non_holiday']['wape'] * 100:.1f}% | {results_lgbm['by_holiday']['non_holiday']['mase']:.2f} | **{'LightGBM' if results_lgbm['by_holiday']['non_holiday']['wape_7d'] < results_m0b['by_holiday']['non_holiday']['wape_7d'] else 'M0b'}** |",
+            f"| **Public Holiday** | {results_m0['by_holiday']['holiday']['wape_7d'] * 100:.1f}% | {results_m0b['by_holiday']['holiday']['wape_7d'] * 100:.1f}% | **{results_lgbm['by_holiday']['holiday']['wape_7d'] * 100:.1f}%** | {results_lgbm['by_holiday']['holiday']['wape'] * 100:.1f}% | {results_lgbm['by_holiday']['holiday']['mase']:.2f} | **{'LightGBM' if results_lgbm['by_holiday']['holiday']['wape_7d'] < results_m0b['by_holiday']['holiday']['wape_7d'] else 'M0b'}** |",
+            f"| **Non-Holiday** | {results_m0['by_holiday']['non_holiday']['wape_7d'] * 100:.1f}% | {results_m0b['by_holiday']['non_holiday']['wape_7d'] * 100:.1f}% | **{results_lgbm['by_holiday']['non_holiday']['wape_7d'] * 100:.1f}%** | {results_lgbm['by_holiday']['non_holiday']['wape'] * 100:.1f}% | {results_lgbm['by_holiday']['non_holiday']['mase']:.2f} | **{'LightGBM' if results_lgbm['by_holiday']['non_holiday']['wape_7d'] < results_m0b['by_holiday']['non_holiday']['wape_7d'] else 'M0b'}** |",
             "",
             "---",
             "",

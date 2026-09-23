@@ -1,0 +1,325 @@
+# Feature label mapping and plain-English translation templates for DonorCast
+# Every feature in models/lgbm/v003/config.json must have an entry here.
+
+features:
+  facility:
+    label: "Collection Facility"
+    type: "categorical"
+    description: "Facility baseline collection capacity and location profile"
+    template_pos: "high-capacity collection center ({val})"
+    template_neg: "lower-volume collection center ({val})"
+    template_neutral: "facility profile for {val}"
+
+  group:
+    label: "Blood Group"
+    type: "categorical"
+    description: "ABO blood group prevalence"
+    template_pos: "high-prevalence blood group ({val})"
+    template_neg: "rare blood group ({val})"
+    template_neutral: "blood group {val} baseline"
+
+  horizon:
+    label: "Forecast Horizon"
+    type: "horizon"
+    description: "Lead time in days from forecast origin"
+    template_pos: "extended forecast lead time (day {val})"
+    template_neg: "near-term forecast lead time (day {val})"
+    template_neutral: "forecast lead time of {val} days"
+
+  lag_0:
+    label: "Origin Day Donations"
+    type: "lag_count"
+    description: "Donations recorded on forecast origin day t"
+    template_pos: "strong donations on origin day ({val:g} donors)"
+    template_neg: "low donations on origin day ({val:g} donors)"
+    template_neutral: "origin day collection of {val:g} donors"
+
+  lag_1:
+    label: "Prior Day Donations"
+    type: "lag_count"
+    description: "Donations recorded 1 day before forecast origin (t-1)"
+    template_pos: "strong prior-day turnout ({val:g} donors)"
+    template_neg: "lower prior-day turnout ({val:g} donors)"
+    template_neutral: "prior-day collection of {val:g} donors"
+
+  lag_2:
+    label: "2-Day Prior Donations"
+    type: "lag_count"
+    description: "Donations recorded 2 days before forecast origin (t-2)"
+    template_pos: "elevated 2-day prior donations ({val:g} donors)"
+    template_neg: "subdued 2-day prior donations ({val:g} donors)"
+    template_neutral: "2-day prior collection of {val:g} donors"
+
+  lag_6:
+    label: "Same Weekday Last Week"
+    type: "lag_count"
+    description: "Donations on the same weekday 1 week ago (t-6)"
+    template_pos: "strong collection on same weekday last week ({val:g} donors)"
+    template_neg: "weak collection on same weekday last week ({val:g} donors)"
+    template_zero: "zero donations on same weekday last week"
+    template_neutral: "same weekday last week had {val:g} donations"
+
+  lag_13:
+    label: "Same Weekday 2 Weeks Ago"
+    type: "lag_count"
+    description: "Donations on the same weekday 2 weeks ago (t-13)"
+    template_pos: "strong turnout 2 weeks ago on this weekday ({val:g} donors)"
+    template_neg: "dip 2 weeks ago on this weekday ({val:g} donors)"
+    template_zero: "zero donations 2 weeks ago on this weekday"
+    template_neutral: "collection 2 weeks ago of {val:g} donors"
+
+  lag_20:
+    label: "Same Weekday 3 Weeks Ago"
+    type: "lag_count"
+    description: "Donations on the same weekday 3 weeks ago (t-20)"
+    template_pos: "elevated collection 3 weeks ago on this weekday ({val:g} donors)"
+    template_neg: "subdued collection 3 weeks ago on this weekday ({val:g} donors)"
+    template_zero: "zero donations 3 weeks ago on this weekday"
+    template_neutral: "collection 3 weeks ago of {val:g} donors"
+
+  lag_27:
+    label: "Same Weekday 4 Weeks Ago"
+    type: "lag_count"
+    description: "Donations on the same weekday 4 weeks ago (t-27)"
+    template_pos: "elevated collection 4 weeks ago on this weekday ({val:g} donors)"
+    template_neg: "subdued collection 4 weeks ago on this weekday ({val:g} donors)"
+    template_zero: "zero donations 4 weeks ago on this weekday"
+    template_neutral: "collection 4 weeks ago of {val:g} donors"
+
+  rolling_mean_7:
+    label: "7-Day Rolling Average"
+    type: "rolling_stat"
+    description: "Recent 7-day average daily collection"
+    template_pos: "strong 7-day trailing average ({val:.1f} donors/day)"
+    template_neg: "depressed 7-day trailing average ({val:.1f} donors/day)"
+    template_neutral: "trailing 7-day average of {val:.1f} donors/day"
+
+  rolling_std_7:
+    label: "7-Day Volatility"
+    type: "rolling_stat"
+    description: "Standard deviation of donations over last 7 days"
+    template_pos: "high short-term collection volatility (std {val:.1f})"
+    template_neg: "steady short-term collection volume (std {val:.1f})"
+    template_neutral: "recent 7-day volatility (std {val:.1f})"
+
+  rolling_mean_28:
+    label: "28-Day Rolling Average"
+    type: "rolling_stat"
+    description: "Past month baseline daily collection average"
+    template_pos: "strong monthly collection baseline ({val:.1f} donors/day)"
+    template_neg: "declining monthly baseline ({val:.1f} donors/day)"
+    template_neutral: "monthly baseline of {val:.1f} donors/day"
+
+  rolling_std_28:
+    label: "28-Day Volatility"
+    type: "rolling_stat"
+    description: "Monthly standard deviation of daily donations"
+    template_pos: "high monthly donation fluctuation (std {val:.1f})"
+    template_neg: "consistent monthly turnout (std {val:.1f})"
+    template_neutral: "monthly donation volatility (std {val:.1f})"
+
+  same_weekday_mean_4:
+    label: "4-Week Weekday Average"
+    type: "rolling_stat"
+    description: "Average donation count across same weekday over last 4 weeks"
+    template_pos: "high 4-week weekday average ({val:.1f} donors)"
+    template_neg: "low 4-week weekday average ({val:.1f} donors)"
+    template_neutral: "4-week weekday baseline of {val:.1f} donors"
+
+  share_mobile_28:
+    label: "Mobile Drive Share"
+    type: "demographic_share"
+    description: "Share of donations collected at mobile drives over last 28 days"
+    template_pos: "higher mobile drive activity ({val:.1%} of donors)"
+    template_neg: "mobile-drive share down over last 4 weeks ({val:.1%} of donors)"
+    template_neutral: "mobile drive share at {val:.1%}"
+
+  share_student_28:
+    label: "Student Donor Share"
+    type: "demographic_share"
+    description: "Share of donations from students over last 28 days"
+    template_pos: "higher student donor turnout ({val:.1%} of donors)"
+    template_neg: "fewer student donors recently ({val:.1%} of donors)"
+    template_neutral: "student donor share at {val:.1%}"
+
+  share_regular_28:
+    label: "Regular Donor Share"
+    type: "demographic_share"
+    description: "Share of donations from regular repeat donors over last 28 days"
+    template_pos: "strong regular donor turnout ({val:.1%} of donors)"
+    template_neg: "fewer regular repeat donors ({val:.1%} of donors)"
+    template_neutral: "regular donor share at {val:.1%}"
+
+  share_new_donor_28:
+    label: "New Donor Share"
+    type: "demographic_share"
+    description: "Share of first-time donors over last 28 days"
+    template_pos: "strong first-time donor recruitment ({val:.1%} of donors)"
+    template_neg: "lower first-time donor intake ({val:.1%} of donors)"
+    template_neutral: "new donor share at {val:.1%}"
+
+  share_apheresis_28:
+    label: "Apheresis Share"
+    type: "demographic_share"
+    description: "Share of donations via apheresis machines over last 28 days"
+    template_pos: "increased apheresis appointment volume ({val:.1%} share)"
+    template_neg: "reduced apheresis appointment volume ({val:.1%} share)"
+    template_neutral: "apheresis donation share at {val:.1%}"
+
+  share_newdonor_17_24_28:
+    label: "Young New Donor Share (17-24)"
+    type: "demographic_share"
+    description: "Share of new donors aged 17-24 over last 28 days"
+    template_pos: "strong youth recruitment drives ({val:.1%} of new donors)"
+    template_neg: "youth/campus donor drive dip ({val:.1%} of new donors)"
+    template_neutral: "youth donor share at {val:.1%}"
+
+  day_of_week:
+    label: "Day of Week"
+    type: "day_of_week"
+    description: "Day of the week (0=Mon, 4=Fri, 5=Sat, 6=Sun)"
+    template_pos: "{weekday_name} high collection schedule"
+    template_neg: "{weekday_name} reduced operating hours / collection dip"
+    template_neutral: "{weekday_name} schedule"
+
+  week_of_year:
+    label: "Week of Year"
+    type: "calendar_cycle"
+    description: "ISO week number (1 to 53)"
+    template_pos: "peak seasonal donation period (week {val})"
+    template_neg: "seasonal supply lull (week {val})"
+    template_neutral: "seasonal cycle week {val}"
+
+  month:
+    label: "Month of Year"
+    type: "calendar_cycle"
+    description: "Calendar month (1 to 12)"
+    template_pos: "favorable seasonal month ({month_name})"
+    template_neg: "seasonal low-donation month ({month_name})"
+    template_neutral: "month of {month_name}"
+
+  is_weekend:
+    label: "State Weekend Flag"
+    type: "binary_flag"
+    description: "State-specific weekend indicator (accounting for Friday-Saturday vs Saturday-Sunday states)"
+    template_active: "state weekend schedule"
+    template_inactive: "regular weekday operations"
+    template_pos: "weekend donor drive hours"
+    template_neg: "state weekend clinic closure"
+
+  is_public_holiday:
+    label: "Public Holiday Flag"
+    type: "binary_flag"
+    description: "National or state public holiday indicator"
+    template_active: "public holiday closure / dip"
+    template_inactive: "standard working day"
+    template_pos: "public holiday special drive"
+    template_neg: "public holiday clinic closure / dip"
+
+  is_ramadan:
+    label: "Ramadan Fasting Month"
+    type: "binary_flag"
+    description: "Islamic holy month of Ramadan indicator"
+    template_active: "Ramadan fasting month (subdued daytime donations)"
+    template_inactive: "outside Ramadan"
+    template_pos: "post-iftar evening donation drive"
+    template_neg: "Ramadan daytime donation drop"
+
+  days_to_hari_raya:
+    label: "Days to Hari Raya"
+    type: "proximity"
+    festival: "Hari Raya"
+    description: "Days remaining until Hari Raya Aidilfitri"
+    template_today: "Hari Raya today"
+    template_near: "Hari Raya in {val} days"
+    template_far: "{val} days until Hari Raya"
+
+  days_since_hari_raya:
+    label: "Days Since Hari Raya"
+    type: "post_event"
+    festival: "Hari Raya"
+    description: "Days elapsed since Hari Raya Aidilfitri"
+    template_today: "Hari Raya today"
+    template_near: "{val} days post-Hari Raya recovery"
+    template_far: "{val} days after Hari Raya"
+
+  days_to_aidiladha:
+    label: "Days to Aidiladha"
+    type: "proximity"
+    festival: "Hari Raya Aidiladha"
+    description: "Days remaining until Hari Raya Haji / Aidiladha"
+    template_today: "Aidiladha today"
+    template_near: "Aidiladha in {val} days"
+    template_far: "{val} days until Aidiladha"
+
+  days_since_aidiladha:
+    label: "Days Since Aidiladha"
+    type: "post_event"
+    festival: "Hari Raya Aidiladha"
+    description: "Days elapsed since Hari Raya Aidiladha"
+    template_today: "Aidiladha today"
+    template_near: "{val} days post-Aidiladha"
+    template_far: "{val} days after Aidiladha"
+
+  days_to_cny:
+    label: "Days to Chinese New Year"
+    type: "proximity"
+    festival: "Chinese New Year"
+    description: "Days remaining until Chinese New Year"
+    template_today: "Chinese New Year today"
+    template_near: "Chinese New Year in {val} days"
+    template_far: "{val} days until Chinese New Year"
+
+  days_since_cny:
+    label: "Days Since Chinese New Year"
+    type: "post_event"
+    festival: "Chinese New Year"
+    description: "Days elapsed since Chinese New Year"
+    template_today: "Chinese New Year today"
+    template_near: "{val} days post-Chinese New Year"
+    template_far: "{val} days after Chinese New Year"
+
+  days_to_deepavali:
+    label: "Days to Deepavali"
+    type: "proximity"
+    festival: "Deepavali"
+    description: "Days remaining until Deepavali"
+    template_today: "Deepavali today"
+    template_near: "Deepavali in {val} days"
+    template_far: "{val} days until Deepavali"
+
+  days_since_deepavali:
+    label: "Days Since Deepavali"
+    type: "post_event"
+    festival: "Deepavali"
+    description: "Days elapsed since Deepavali"
+    template_today: "Deepavali today"
+    template_near: "{val} days post-Deepavali"
+    template_far: "{val} days after Deepavali"
+
+  is_school_holiday:
+    label: "School Holiday Flag"
+    type: "binary_flag"
+    description: "Ministry of Education school term break indicator"
+    template_active: "school holidays"
+    template_inactive: "regular school term"
+    template_pos: "holiday blood campaign"
+    template_neg: "school holidays (fewer campus donors)"
+
+  is_mco:
+    label: "MCO Lockdown Flag"
+    type: "binary_flag"
+    description: "COVID Movement Control Order pandemic restriction period"
+    template_active: "MCO pandemic movement restrictions active"
+    template_inactive: "no movement restrictions"
+    template_pos: "MCO essential donor response"
+    template_neg: "MCO movement restriction barrier"
+
+  is_election_day:
+    label: "Election Day Flag"
+    type: "binary_flag"
+    description: "General election polling day"
+    template_active: "general election polling day"
+    template_inactive: "standard non-polling day"
+    template_pos: "election turnout drive"
+    template_neg: "election day travel / clinic closure"
