@@ -1,3 +1,6 @@
 # Enforce LF endings and binary treatment for LightGBM model files on Windows
 models/**/*.txt -text
 *.parquet binary
+
+# Raw data files must be bit-for-bit preserved with immutable SHA-256 hashes
+data/raw/* -text
