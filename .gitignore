@@ -1,11 +1,43 @@
-# Caches and virtual environments
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# Caches and testing
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
 .venv/
 venv/
+ENV/
+env/
 
-# Processed intermediate data and outputs (data/raw/ is tracked and committed)
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# Secrets and environment variables
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# Processed intermediate data and generated figures (data/raw/ is tracked and committed)
 data/processed/*.parquet
 reports/figures/*.png

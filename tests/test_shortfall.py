@@ -37,7 +37,7 @@ def test_shortfall_rules_and_severity():
             "group": ["O"] * 7,
             "origin_date": ["2026-09-22"] * 7,
             "horizon": list(range(1, 8)),
-            "target_date": [f"2026-09-{23+i}" for i in range(7)],
+            "target_date": [f"2026-09-{23 + i}" for i in range(7)],
             "target": [np.nan] * 7,
             "prediction": [10.0] * 7,  # total 7d = 70.0
             "pred_p50": [10.0] * 7,

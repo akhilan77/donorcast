@@ -168,7 +168,9 @@ def test_hari_raya_2025_replay_behavior():
     )
 
     # Realized actuals confirmed dip
-    assert holiday_target == 0.0, f"Expected actual donations to drop to 0 on Hari Raya, got {holiday_target}"
+    assert holiday_target == 0.0, (
+        f"Expected actual donations to drop to 0 on Hari Raya, got {holiday_target}"
+    )
 
 
 def test_get_facility_list():
@@ -245,5 +247,10 @@ def test_apptest_interactive_flow():
     # Check that table on replay origin includes Actual column
     df_displayed = at.dataframe[0].value
     assert "Actual" in df_displayed.columns
-    assert list(df_displayed.columns) == ["Date", "p10", "p50", "p90", "Actual"]
-
+    assert list(df_displayed.columns) == [
+        "Date",
+        "Expected",
+        "Low estimate",
+        "High estimate",
+        "Actual",
+    ]

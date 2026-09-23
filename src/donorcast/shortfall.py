@@ -266,6 +266,7 @@ def compute_alerts_table(
     # Actual shortfall if historical actual data exists
     has_actuals = not h7_forecasts["target"].isna().all()
     if has_actuals:
+
         def _classify_actual(row: pd.Series) -> tuple[bool, str]:
             typ = row["typical_7d"]
             act = row["actual_7d"]
@@ -536,7 +537,9 @@ def precompute_replay_origins(
 
     results = []
     for idx, origin in enumerate(origins, start=1):
-        print(f"\n[{idx}/{len(origins)}] Generating forecasts and alerts for replay origin {origin}...")
+        print(
+            f"\n[{idx}/{len(origins)}] Generating forecasts and alerts for replay origin {origin}..."
+        )
         fcst_p, alert_p, _, alert_df = generate_and_save_alerts(
             origin_date=origin,
             outputs_dir=outputs_dir,

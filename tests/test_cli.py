@@ -46,9 +46,7 @@ def test_all_subcommand_arguments():
     assert args.precompute_replay is False
 
     # Custom invocation
-    custom_args = parser.parse_args(
-        ["all", "--origin", "2026-06-15", "--precompute-replay"]
-    )
+    custom_args = parser.parse_args(["all", "--origin", "2026-06-15", "--precompute-replay"])
     assert custom_args.command == "all"
     assert custom_args.origin == "2026-06-15"
     assert custom_args.precompute_replay is True
@@ -65,12 +63,13 @@ def test_handle_all_execution_flow(capsys):
     mock_train = MagicMock(return_value={"version_dir": "models/lgbm/v001"})
     mock_alerts = MagicMock(return_value=[{"alert_id": 1}])
 
-    with patch("donorcast.clean.clean_data", mock_clean), \
-         patch("donorcast.features.generate_all_feature_datasets", mock_features), \
-         patch("donorcast.models.baselines.run_baselines_evaluation", mock_baselines), \
-         patch("donorcast.models.lgbm.run_lgbm_evaluation", mock_train), \
-         patch("donorcast.shortfall.generate_and_save_alerts", mock_alerts):
-
+    with (
+        patch("donorcast.clean.clean_data", mock_clean),
+        patch("donorcast.features.generate_all_feature_datasets", mock_features),
+        patch("donorcast.models.baselines.run_baselines_evaluation", mock_baselines),
+        patch("donorcast.models.lgbm.run_lgbm_evaluation", mock_train),
+        patch("donorcast.shortfall.generate_and_save_alerts", mock_alerts),
+    ):
         args.func(args)
 
     # Check that each mocked stage was called once

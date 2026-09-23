@@ -102,7 +102,9 @@ def create_parser() -> argparse.ArgumentParser:
         print("=" * 80)
         print(f"Origin Date:            {origin}")
         print(f"Precompute Replay:      {precompute_replay}")
-        print("Pipeline Sequence:      1. Clean -> 2. Features -> 3. Baselines -> 4. Train -> 5. Alerts")
+        print(
+            "Pipeline Sequence:      1. Clean -> 2. Features -> 3. Baselines -> 4. Train -> 5. Alerts"
+        )
         print("Test Set Policy:        Skips 'final' (manual held-out test evaluation only)")
         print("=" * 80 + "\n")
 
@@ -191,7 +193,11 @@ def create_parser() -> argparse.ArgumentParser:
         ("baselines", "Run baseline models (M0, M0b) on validation data.", handle_baselines),
         ("train", "Train models (SARIMA, LightGBM, LSTM).", handle_train),
         ("final", "Run final evaluation on test set.", handle_final),
-        ("explain", "Generate global SHAP summary plots and explainability artifacts.", handle_explain),
+        (
+            "explain",
+            "Generate global SHAP summary plots and explainability artifacts.",
+            handle_explain,
+        ),
         ("alerts", "Generate shortfall alerts table and 14-day forecasts.", handle_alerts),
         ("all", "Run the entire end-to-end pipeline.", handle_all),
     ]

@@ -53,31 +53,21 @@ def test_format_reason_specific_cases():
     r2 = format_reason("days_to_hari_raya", value=0, shap_value=-5.0, labels_dict=labels)
     assert "Hari Raya today" in r2
 
-    r_post = format_reason(
-        "days_since_hari_raya", value=4, shap_value=1.2, labels_dict=labels
-    )
+    r_post = format_reason("days_since_hari_raya", value=4, shap_value=1.2, labels_dict=labels)
     assert "4 days post-Hari Raya recovery" in r_post
 
     # Demographic shares
-    r_student = format_reason(
-        "share_student_28", value=0.02, shap_value=-1.8, labels_dict=labels
-    )
+    r_student = format_reason("share_student_28", value=0.02, shap_value=-1.8, labels_dict=labels)
     assert "fewer student donors recently" in r_student
 
-    r_mobile = format_reason(
-        "share_mobile_28", value=0.10, shap_value=-3.0, labels_dict=labels
-    )
+    r_mobile = format_reason("share_mobile_28", value=0.10, shap_value=-3.0, labels_dict=labels)
     assert "mobile-drive share down over last 4 weeks" in r_mobile
 
     # Calendar flags
-    r_school = format_reason(
-        "is_school_holiday", value=1, shap_value=-2.0, labels_dict=labels
-    )
+    r_school = format_reason("is_school_holiday", value=1, shap_value=-2.0, labels_dict=labels)
     assert "school holidays" in r_school
 
-    r_holiday = format_reason(
-        "is_public_holiday", value=1, shap_value=-4.0, labels_dict=labels
-    )
+    r_holiday = format_reason("is_public_holiday", value=1, shap_value=-4.0, labels_dict=labels)
     assert "public holiday closure / dip" in r_holiday
 
     r_ramadan = format_reason("is_ramadan", value=1, shap_value=-3.5, labels_dict=labels)

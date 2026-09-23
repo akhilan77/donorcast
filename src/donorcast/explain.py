@@ -413,9 +413,7 @@ def reasons(
     else:
         # Use explainer's feature names or fallback to cached
         feature_names = (
-            getattr(explainer, "feature_names", None)
-            or _CACHED_FEATURE_NAMES
-            or get_explainer()[2]
+            getattr(explainer, "feature_names", None) or _CACHED_FEATURE_NAMES or get_explainer()[2]
         )
 
     labels_dict = load_feature_labels()
