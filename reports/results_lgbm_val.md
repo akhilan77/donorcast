@@ -2,7 +2,7 @@
 
 - **Model**: `lgbm`
 - **Split**: `val`
-- **Evaluated at**: `2026-09-23T08:56:42.714729+00:00`
+- **Evaluated at**: `2026-09-23T09:10:18.742180+00:00`
 - **Total Rows Evaluated**: 127,688
 
 ---
@@ -14,8 +14,8 @@
 | **WAPE_7D (Primary)** | **18.9%** | 7-day cumulative sum WAPE |
 | **WAPE (Daily)** | **39.6%** | Daily Weighted Absolute Percentage Error |
 | **MASE** | **0.79** | Mean Absolute Scaled Error (vs 2020–2022 seasonal naive 7) |
-| **Pinball Loss (p10)** | N/A | Quantile loss at 10th percentile |
-| **Pinball Loss (p90)** | N/A | Quantile loss at 90th percentile |
+| **Pinball Loss (p10)** | 1.41 | Quantile loss at 10th percentile |
+| **Pinball Loss (p90)** | 2.08 | Quantile loss at 90th percentile |
 
 ---
 
@@ -95,3 +95,13 @@
 |---|---|---|---|---|
 | **Public Holiday** | 19.3% | 51.5% | 1.01 | 7,136 |
 | **Non-Holiday** | 18.7% | 38.9% | 0.78 | 120,552 |
+
+---
+
+## 7. Quantile Prediction Band & Empirical Coverage (p10–p90)
+
+- **Target Coverage**: **80.0%** (p10 to p90 interval)
+- **Empirical Coverage (Validation)**: **81.2%**
+- **Pinball Loss (p10)**: **1.41**
+- **Pinball Loss (p90)**: **2.08**
+- **Interpretation**: The LightGBM quantile models (p10 and p90) achieve an empirical coverage of 81.2% on the validation split, closely matching the target 80.0% prediction interval.

@@ -225,3 +225,105 @@ def test_versioned_model_saving(synthetic_features_dataset, tmp_path):
     )
     assert v2_dir.name == "v002"
     assert (v2_dir / "model.txt").exists()
+
+
+def test_train_quantile_lgbm_and_predictions(synthetic_features_dataset):
+    from donorcast.models.lgbm import (
+        predict_lgbm_with_quantiles,
+        train_quantile_lgbm,
+    )
+
+    df, feature_cols = synthetic_features_dataset
+    df_train_fit = df[df["origin_date"] < "2022-07-01"]
+    df_train_es = df[
+        (df["origin_date"] >= "2022-07-01") & (df["origin_date"] <= "2022-12-31")
+    ]
+    df_val = df[df["origin_date"] >= "2023-01-01"]
+
+    params = {
+        "num_leaves": 15,
+        "learning_rate": 0.05,
+        "min_data_in_leaf": 5,
+    }
+
+    model_point, _ = train_single_lgbm(
+        df_train_fit, df_train_es, feature_cols, params, seed=42
+    )
+    model_p10, _ = train_quantile_lgbm(
+        df_train_fit, df_train_es, feature_cols, params, alpha=0.1, seed=42
+    )
+    model_p90, _ = train_quantile_lgbm(
+        df_train_fit, df_train_es, feature_cols, params, alpha=0.9, seed=42
+    )
+
+    preds_df = predict_lgbm_with_quantiles(
+        model_point, model_p10, model_p90, df_val, feature_cols
+    )
+
+    assert "pred_p10" in preds_df.columns
+    assert "pred_p90" in preds_df.columns
+    assert (preds_df["pred_p10"] >= 0.0).all()
+    assert (preds_df["pred_p90"] >= 0.0).all()
+    assert (preds_df["pred_p10"] <= preds_df["pred_p90"]).all()
+
+
+def test_compute_empirical_coverage():
+    from donorcast.models.lgbm import compute_empirical_coverage
+
+    df = pd.DataFrame(
+        {
+            "target": [10.0, 20.0, 30.0, 40.0, 50.0],
+            "pred_p10": [5.0, 15.0, 25.0, 45.0, 55.0],  # 45 & 55 will miss
+            "pred_p90": [15.0, 25.0, 35.0, 48.0, 60.0],
+        }
+    )
+    # Row 0: 10 in [5, 15] -> Yes
+    # Row 1: 20 in [15, 25] -> Yes
+    # Row 2: 30 in [25, 35] -> Yes
+    # Row 3: 40 not in [45, 48] -> No
+    # Row 4: 50 not in [55, 60] -> No
+    coverage = compute_empirical_coverage(df)
+    assert coverage == pytest.approx(0.6, abs=1e-5)
+
+
+def test_save_quantile_models(synthetic_features_dataset, tmp_path):
+    from donorcast.models.lgbm import (
+        save_quantile_models_to_version,
+        train_quantile_lgbm,
+    )
+
+    df, feature_cols = synthetic_features_dataset
+    df_train_fit = df[df["origin_date"] < "2022-07-01"]
+    df_train_es = df[
+        (df["origin_date"] >= "2022-07-01") & (df["origin_date"] <= "2022-12-31")
+    ]
+
+    params = {"num_leaves": 15, "learning_rate": 0.05, "min_data_in_leaf": 5}
+    model_p10, _ = train_quantile_lgbm(
+        df_train_fit, df_train_es, feature_cols, params, alpha=0.1, seed=42
+    )
+    model_p90, _ = train_quantile_lgbm(
+        df_train_fit, df_train_es, feature_cols, params, alpha=0.9, seed=42
+    )
+
+    v1_dir = save_lgbm_model_version(
+        model_p10,
+        params,
+        train_start="2010-01-01",
+        feature_cols=feature_cols,
+        val_wape=0.35,
+        models_dir=tmp_path,
+    )
+
+    save_quantile_models_to_version(v1_dir, model_p10, model_p90)
+
+    assert (v1_dir / "model_p10.txt").exists()
+    assert (v1_dir / "model_p90.txt").exists()
+
+    with open(v1_dir / "config.json", encoding="utf-8") as f:
+        cfg = json.load(f)
+
+    assert "quantile_models" in cfg
+    assert cfg["quantile_models"]["p10"] == "model_p10.txt"
+    assert cfg["quantile_models"]["p90"] == "model_p90.txt"
+

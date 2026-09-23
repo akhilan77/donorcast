@@ -55,5 +55,9 @@
     "group"
   ],
   "validation_wape": 0.3959226836715373,
-  "saved_at": "2026-09-23T08:52:03.076875+00:00"
+  "saved_at": "2026-09-23T08:52:03.076875+00:00",
+  "quantile_models": {
+    "p10": "model_p10.txt",
+    "p90": "model_p90.txt"
+  }
 }
